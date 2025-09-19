@@ -1,24 +1,58 @@
-// App.js
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import 'react-native-gesture-handler'; // Importante para React Navigation
 
-// Importa o componente de tela que busca os dados da API
+import React from 'react';
+
+import { NavigationContainer } from '@react-navigation/native';
+
+import { createStackNavigator } from '@react-navigation/stack';
+
+ 
+
+// Importe suas telas
+
 import ListaPontosTuristicos from './screens/ListaPontosTuristicos';
 
+import DetalhesPontoTuristico from './screens/DetalhesPontoTuristico';
+
+ 
+
+const Stack = createStackNavigator();
+
+ 
+
 export default function App() {
+
   return (
-    <View style={styles.container}>
-      {/* Renderiza o componente que faz o carregamento e exibe a lista */}
-      <ListaPontosTuristicos />
-      <StatusBar style="auto" />
-    </View>
+
+    <NavigationContainer>
+
+      <Stack.Navigator initialRouteName="ListaPontos">
+
+        <Stack.Screen
+
+          name="ListaPontos"
+
+          component={ListaPontosTuristicos}
+
+          options={{ title: 'Pontos Turísticos' }}
+
+        />
+
+        <Stack.Screen
+
+          name="DetalhesPonto"
+
+          component={DetalhesPontoTuristico}
+
+          options={{ title: 'Detalhes do Ponto' }}
+
+        />
+
+      </Stack.Navigator>
+
+    </NavigationContainer>
+
   );
+
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});

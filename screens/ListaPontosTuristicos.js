@@ -1,108 +1,61 @@
-// screens/ListaPontosTuristicos.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
-import PontoTuristicoCard from '../components/PontoTuristicoCard'; // <-- Caminho corrigido
-import api from '../services/api';
+import React from 'react';
+
+import { View, Text, StyleSheet, Button } from 'react-native';
+
+import { useNavigation } from '@react-navigation/native'; // <--- Importe useNavigation
+
+ 
 
 const ListaPontosTuristicos = () => {
-  const [pontosTuristicos, setPontosTuristicos] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchPontosTuristicos = async () => {
-      try {
-        const response = await api.get('/posts');
-        const dadosAdaptados = response.data.map(item => ({
-          id: String(item.id),
-          nome: item.title.split(' ').slice(0, 3).join(' '), // Pegando apenas as 3 primeiras palavras para o título
-          descricao: item.body.split('\n')[0], // Pegando apenas a primeira linha da descrição
-          imagem: `https://picsum.photos/id/${item.id}/200/200`, // Imagem fictícia
-        }));
-        setPontosTuristicos(dadosAdaptados);
-      } catch (err) {
-        console.error("Erro ao buscar dados:", err);
-        setError("Não foi possível carregar os pontos turísticos.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const navigation = useNavigation(); // <--- Hook para acessar a navegação
 
-    fetchPontosTuristicos();
-  }, []);
+ 
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Carregando pontos turísticos...</Text>
-      </View>
-    );
-  }
+  const handleGoToDetails = () => {
 
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
+    // <--- Navega para a tela 'DetalhesPonto' e passa parâmetros
+
+    navigation.navigate('DetalhesPonto', {
+
+      pontoId: '123',
+
+      nomePonto: 'Parque Barigui',
+
+      descricaoPonto: 'Um lindo parque em Curitiba com capivaras.',
+
+    });
+
+  };
+
+ 
 
   return (
+
     <View style={styles.container}>
-      <Text style={styles.mainTitle}>Pontos Turísticos (API)</Text>
-      <FlatList
-        data={pontosTuristicos}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          // Passando todas as props necessárias para o Card
-          <PontoTuristicoCard
-            nome={item.nome}
-            descricao={item.descricao}
-            imagem={item.imagem}
-          />
-        )}
-      />
+
+      <Text style={styles.title}>Lista de Pontos Turísticos</Text>
+
+      <Button title="Ver Detalhes do Parque Barigui" onPress={handleGoToDetails} />
+
+      {/* Aqui virá a lista real de pontos turísticos */}
+
     </View>
+
   );
+
 };
 
+ 
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingTop: 50,
-  },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#333',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ffe0e0',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: 'red',
-    textAlign: 'center',
-  },
+
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  title: { fontSize: 24, marginBottom: 20 },
+
 });
+
+ 
 
 export default ListaPontosTuristicos;
