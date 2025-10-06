@@ -1,24 +1,36 @@
-// App.js
+import 'react-native-gesture-handler';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-
-// Importa o componente de tela que busca os dados da API
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack'; // Ou seu MainNavigator
+ 
+// <--- Importe o FavoritesProvider
+import { FavoritesProvider } from './context/FavoritesContext';
+ 
+// Importe suas telas
 import ListaPontosTuristicos from './screens/ListaPontosTuristicos';
-
+import DetalhesPontoTuristico from './screens/DetalhesPontoTuristico';
+// ... (outras telas se já estiverem no MainNavigator)
+ 
+const Stack = createStackNavigator(); // Ou use seu MainNavigator se já estiver complexo
+ 
 export default function App() {
   return (
-    <View style={styles.container}>
-      {/* Renderiza o componente que faz o carregamento e exibe a lista */}
-      <ListaPontosTuristicos />
-      <StatusBar style="auto" />
-    </View>
+    // <--- Envolva o NavigationContainer com o FavoritesProvider
+    <FavoritesProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="ListaPontos">
+          <Stack.Screen
+            name="ListaPontos"
+            component={ListaPontosTuristicos}
+            options={{ title: 'Pontos Turísticos' }}
+          />
+          <Stack.Screen
+            name="DetalhesPonto"
+            component={DetalhesPontoTuristico}
+            options={{ title: 'Detalhes do Ponto' }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </FavoritesProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});
