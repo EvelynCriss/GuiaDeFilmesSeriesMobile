@@ -1,6 +1,9 @@
 Tema: Um aplicativo para explorar filmes e séries em cartaz ou populares.
+
     • API Sugerida: The Movie Database (TMDb) API.
+    
     • Funcionalidades Específicas:
+    
         ◦ Explorar: Listar filmes populares. A pesquisa e o filtro devem funcionar por título do filme.
         ◦ Detalhes: Exibir sinopse, elenco, trailer e avaliações de um filme/série.
         ◦ Minha Lista: Salvar filmes para assistir depois, funcionando como uma lista de favoritos.
