@@ -1,48 +1,79 @@
 // screens/ListaPontosTuristicos.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
-import PontoTuristicoCard from '../components/PontoTuristicoCard'; // <-- Caminho corrigido
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import PontoTuristicoCard from '../components/PontoTuristicoCard';
 import api from '../services/api';
+import { OMDB_API_KEY } from '@env'; // <--- MUDANÇA: Importado do @env
+
+// <--- MUDANÇA: Chave vindo do .env
+const API_KEY = OMDB_API_KEY; 
 
 const ListaPontosTuristicos = () => {
-  const [pontosTuristicos, setPontosTuristicos] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const navigation = useNavigation();
+  
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchPontosTuristicos = async () => {
+    const fetchMovies = async () => {
+      if (!API_KEY) {
+        setError("Chave de API (OMDB_API_KEY) não encontrada no .env");
+        setLoading(false);
+        return;
+      }
+      
       try {
-        const response = await api.get('/posts');
-        const dadosAdaptados = response.data.map(item => ({
-          id: String(item.id),
-          nome: item.title.split(' ').slice(0, 3).join(' '), // Pegando apenas as 3 primeiras palavras para o título
-          descricao: item.body.split('\n')[0], // Pegando apenas a primeira linha da descrição
-          imagem: `https://picsum.photos/id/${item.id}/200/200`, // Imagem fictícia
-        }));
-        setPontosTuristicos(dadosAdaptados);
+        const response = await api.get('/', {
+          params: {
+            s: 'Batman', 
+            apikey: API_KEY,
+          }
+        });
+
+        if (response.data.Search) {
+          
+          // <--- MUDANÇA AQUI: Filtra os duplicados ---
+          // A API da OMDb (busca 's=') às vezes retorna duplicados.
+          // Usamos um Map para garantir que cada imdbID apareça apenas uma vez.
+          const uniqueMovies = Array.from(
+            new Map(response.data.Search.map(movie => [movie.imdbID, movie])).values()
+          );
+          // --- Fim da mudança ---
+
+          setMovies(uniqueMovies); // <--- Passamos a lista limpa para o estado
+
+        } else {
+          setError(response.data.Error || 'Nenhum filme encontrado');
+        }
       } catch (err) {
-        console.error("Erro ao buscar dados:", err);
-        setError("Não foi possível carregar os pontos turísticos.");
+        setError('Erro ao buscar filmes. Verifique sua conexão ou API Key.');
+        console.error(err);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchPontosTuristicos();
+    fetchMovies();
   }, []);
 
-  if (isLoading) {
+  const handleFilmePress = (filme) => {
+    navigation.navigate('DetalhesPonto', { pontoDetalhes: filme });
+  };
+
+  if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Carregando pontos turísticos...</Text>
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Carregando filmes...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.container, styles.center]}>
         <Text style={styles.errorText}>{error}</Text>
       </View>
     );
@@ -50,16 +81,15 @@ const ListaPontosTuristicos = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.mainTitle}>Pontos Turísticos (API)</Text>
+      <Text style={styles.title}>Filmes (Ex: "Batman")</Text>
       <FlatList
-        data={pontosTuristicos}
-        keyExtractor={(item) => item.id}
+        style={{ width: '100%' }}
+        data={movies}
+        keyExtractor={(item) => item.imdbID}
         renderItem={({ item }) => (
-          // Passando todas as props necessárias para o Card
           <PontoTuristicoCard
-            nome={item.nome}
-            descricao={item.descricao}
-            imagem={item.imagem}
+            ponto={item} 
+            onPress={() => handleFilmePress(item)} 
           />
         )}
       />
@@ -67,42 +97,26 @@ const ListaPontosTuristicos = () => {
   );
 };
 
+// ... (estilos permanecem os mesmos)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingTop: 50,
+    alignItems: 'center',
+    paddingTop: 40,
+    backgroundColor: '#f0f0f0',
   },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  center: {
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 24,
     marginBottom: 20,
-    color: '#333',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ffe0e0',
-    padding: 20,
+    fontWeight: 'bold',
   },
   errorText: {
     fontSize: 16,
     color: 'red',
-    textAlign: 'center',
-  },
+  }
 });
 
 export default ListaPontosTuristicos;
