@@ -1,52 +1,95 @@
 // screens/ListaPontosTuristicos.js
-import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import PontoTuristicoCard from '../components/PontoTuristicoCard'; // <-- 1. IMPORTAÇÃO ADICIONADA
+import PontoTuristicoCard from '../components/PontoTuristicoCard';
+import api from '../services/api';
+import { OMDB_API_KEY } from '@env'; // <--- MUDANÇA: Importado do @env
 
-const pontosTuristicos = [
-  {
-    id: '1',
-    nome: 'Parque Barigui',
-    descricao: 'Um lindo parque em Curitiba com capivaras.',
-    detalhesCompletos: 'É um dos maiores e mais antigos parques da cidade, oferecendo amplas áreas verdes, lagos, e pistas para caminhada e ciclismo.'
-  },
-  {
-    id: '2',
-    nome: 'Jardim Botânico',
-    descricao: 'A famosa estufa de vidro e jardins franceses.',
-    detalhesCompletos: 'Inspirado nos jardins franceses, sua estufa abriga espécies botânicas que são referência nacional, além de uma galeria de arte.'
-  },
-  {
-    id: '3',
-    nome: 'Ópera de Arame',
-    descricao: 'Um teatro construído com tubos de aço e vidro.',
-    detalhesCompletos: 'Com estrutura tubular e teto transparente, a Ópera de Arame é um dos símbolos de Curitiba, integrada à natureza do Parque das Pedreiras.'
-  },
-];
+// <--- MUDANÇA: Chave vindo do .env
+const API_KEY = OMDB_API_KEY; 
 
 const ListaPontosTuristicos = () => {
   const navigation = useNavigation();
+  
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // --- 2. FUNÇÃO handlePontoPress CRIADA ---
-  // Ela recebe o objeto completo do ponto turístico (item)
-  const handlePontoPress = (ponto) => {
-    // Navega para 'DetalhesPonto' e passa o objeto como parâmetro
-    navigation.navigate('DetalhesPonto', { pontoDetalhes: ponto });
+  useEffect(() => {
+    const fetchMovies = async () => {
+      if (!API_KEY) {
+        setError("Chave de API (OMDB_API_KEY) não encontrada no .env");
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const response = await api.get('/', {
+          params: {
+            s: 'Batman', 
+            apikey: API_KEY,
+          }
+        });
+
+        if (response.data.Search) {
+          
+          // <--- MUDANÇA AQUI: Filtra os duplicados ---
+          // A API da OMDb (busca 's=') às vezes retorna duplicados.
+          // Usamos um Map para garantir que cada imdbID apareça apenas uma vez.
+          const uniqueMovies = Array.from(
+            new Map(response.data.Search.map(movie => [movie.imdbID, movie])).values()
+          );
+          // --- Fim da mudança ---
+
+          setMovies(uniqueMovies); // <--- Passamos a lista limpa para o estado
+
+        } else {
+          setError(response.data.Error || 'Nenhum filme encontrado');
+        }
+      } catch (err) {
+        setError('Erro ao buscar filmes. Verifique sua conexão ou API Key.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, []);
+
+  const handleFilmePress = (filme) => {
+    navigation.navigate('DetalhesPonto', { pontoDetalhes: filme });
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Carregando filmes...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* O Text foi movido para fora do FlatList para ser um título fixo */}
-      <Text style={styles.title}>Lista de Pontos Turísticos</Text>
+      <Text style={styles.title}>Filmes (Ex: "Batman")</Text>
       <FlatList
-        style={{ width: '100%' }} // Garante que a FlatList ocupe a largura
-        data={pontosTuristicos}
-        keyExtractor={(item) => item.id}
+        style={{ width: '100%' }}
+        data={movies}
+        keyExtractor={(item) => item.imdbID}
         renderItem={({ item }) => (
           <PontoTuristicoCard
-            ponto={item}
-            onPress={() => handlePontoPress(item)} // Chama a nova função
+            ponto={item} 
+            onPress={() => handleFilmePress(item)} 
           />
         )}
       />
@@ -54,18 +97,26 @@ const ListaPontosTuristicos = () => {
   );
 };
 
+// ... (estilos permanecem os mesmos)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // justifyContent: 'center', // Removido para a lista começar do topo
     alignItems: 'center',
-    paddingTop: 40, // Adiciona um espaço no topo
+    paddingTop: 40,
+    backgroundColor: '#f0f0f0',
+  },
+  center: {
+    justifyContent: 'center',
   },
   title: {
     fontSize: 24,
     marginBottom: 20,
     fontWeight: 'bold',
   },
+  errorText: {
+    fontSize: 16,
+    color: 'red',
+  }
 });
 
 export default ListaPontosTuristicos;

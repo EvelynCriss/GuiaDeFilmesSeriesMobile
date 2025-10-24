@@ -1,25 +1,35 @@
 // components/PontoTuristicoCard.js
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // <--- Importe Ionicons
-import { useFavorites } from '../context/FavoritesContext'; // <--- Importe useFavorites
+// <--- MUDANÇA: Importado Image
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'; 
+import { Ionicons } from '@expo/vector-icons'; 
+import { useFavorites } from '../context/FavoritesContext'; 
  
-const PontoTuristicoCard = ({ ponto, onPress }) => { // <--- Recebe o objeto 'ponto' completo
-  const { isFavorite, toggleFavorite } = useFavorites(); // <--- Use o hook do contexto
+// <--- MUDANÇA: Renomeada a prop 'ponto' para 'filme' para clareza
+const PontoTuristicoCard = ({ ponto: filme, onPress }) => { 
+  const { isFavorite, toggleFavorite } = useFavorites(); 
  
   const handleToggleFavorite = () => {
-    toggleFavorite(ponto.id); // <--- Usa a função do contexto com o ID do ponto
+    // <--- MUDANÇA: Usando filme.imdbID
+    toggleFavorite(filme.imdbID); 
   };
  
-  const favoriteIconName = isFavorite(ponto.id) ? 'heart' : 'heart-outline'; // <--- Lógica do ícone
-  const favoriteIconColor = isFavorite(ponto.id) ? 'red' : 'gray';
+  // <--- MUDANÇA: Usando filme.imdbID
+  const favoriteIconName = isFavorite(filme.imdbID) ? 'heart' : 'heart-outline';
+  const favoriteIconColor = isFavorite(filme.imdbID) ? 'red' : 'gray';
  
   return (
     <TouchableOpacity onPress={onPress} style={styles.touchable}>
       <View style={styles.card}>
-        <View style={styles.infoContainer}> {/* <--- Novo container para info e favorito */}
-          <Text style={styles.titulo}>{ponto.nome}</Text>
-          <Text style={styles.descricao}>{ponto.descricao}</Text>
+        {/* <--- MUDANÇA: Adicionado Pôster do filme */}
+        <Image 
+          source={{ uri: filme.Poster !== 'N/A' ? filme.Poster : 'https://via.placeholder.com/100x150.png?text=No+Image' }} 
+          style={styles.poster} 
+        />
+        <View style={styles.infoContainer}>
+          {/* <--- MUDANÇA: Exibindo Título e Ano */}
+          <Text style={styles.titulo}>{filme.Title}</Text>
+          <Text style={styles.descricao}>{filme.Year}</Text>
         </View>
         <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteButton}>
           <Ionicons name={favoriteIconName} size={24} color={favoriteIconColor} />
@@ -32,19 +42,26 @@ const PontoTuristicoCard = ({ ponto, onPress }) => { // <--- Recebe o objeto 'po
 const styles = StyleSheet.create({
   touchable: { width: '100%' },
   card: {
-    flexDirection: 'row', // <--- Para alinhar info e botão lado a lado
+    flexDirection: 'row', 
     alignItems: 'center',
     backgroundColor: '#fff',
-    padding: 15,
-    marginVertical: 10,
-    marginHorizontal: 20,
+    padding: 10, // <--- MUDANÇA: Ajuste no padding
+    marginVertical: 8, // <--- MUDANÇA: Ajuste na margem
+    marginHorizontal: 16, // <--- MUDANÇA: Ajuste na margem
     borderRadius: 8,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3.84, elevation: 5,
   },
-  infoContainer: { flex: 1, marginRight: 10 }, // <--- Para info ocupar o espaço restante
-  titulo: { fontSize: 20, fontWeight: 'bold', marginBottom: 5, color: '#333' },
-  descricao: { fontSize: 14, color: '#666' },
-  favoriteButton: { padding: 5 }, // <--- Estilo do botão de favorito
+  // <--- MUDANÇA: Estilo para o Pôster
+  poster: {
+    width: 60,
+    height: 90,
+    borderRadius: 4,
+    marginRight: 15,
+  },
+  infoContainer: { flex: 1, marginRight: 10 }, 
+  titulo: { fontSize: 18, fontWeight: 'bold', color: '#333' }, // <--- MUDANÇA: Ajuste fonte
+  descricao: { fontSize: 14, color: '#666', marginTop: 4 }, // <--- MUDANÇA: Ajuste fonte
+  favoriteButton: { padding: 5 }, 
 });
  
 export default PontoTuristicoCard;
