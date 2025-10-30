@@ -4,14 +4,14 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-nativ
 import { useNavigation } from '@react-navigation/native';
 import PontoTuristicoCard from '../components/PontoTuristicoCard';
 import api from '../services/api';
-import { OMDB_API_KEY } from '@env'; // <--- MUDANÇA: Importado do @env
+import { TMDB_API_KEY } from '@env'; // <--- MUDANÇA: Importado do @env
 
 // <--- MUDANÇA: Chave vindo do .env
-const API_KEY = OMDB_API_KEY; 
+const API_KEY = TMDB_API_KEY;
 
 const ListaPontosTuristicos = () => {
   const navigation = useNavigation();
-  
+
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,33 +19,36 @@ const ListaPontosTuristicos = () => {
   useEffect(() => {
     const fetchMovies = async () => {
       if (!API_KEY) {
-        setError("Chave de API (OMDB_API_KEY) não encontrada no .env");
+        setError("Chave de API (TMDB_API_KEY) não encontrada no .env");
         setLoading(false);
         return;
       }
-      
+
       try {
-        const response = await api.get('/', {
+        // <--- MUDANÇA: Endpoint e parâmetros atualizados para TMDb
+        const response = await api.get('/search/movie', {
           params: {
-            s: 'Batman', 
-            apikey: API_KEY,
+            query: 'Fast and furious', // <--- MUDANÇA: 's' virou 'query'
+            api_key: API_KEY,          // <--- MUDANÇA: 'apikey' virou 'api_key'
+            language: 'pt-BR',
           }
         });
 
-        if (response.data.Search) {
-          
+        // <--- MUDANÇA: 'Search' virou 'results'
+        if (response.data.results) {
+
           // <--- MUDANÇA AQUI: Filtra os duplicados ---
-          // A API da OMDb (busca 's=') às vezes retorna duplicados.
-          // Usamos um Map para garantir que cada imdbID apareça apenas uma vez.
+          // Usamos um Map para garantir que cada 'id' (antes 'imdbID') apareça apenas uma vez.
           const uniqueMovies = Array.from(
-            new Map(response.data.Search.map(movie => [movie.imdbID, movie])).values()
+            new Map(response.data.results.map(movie => [movie.id, movie])).values() // <--- MUDANÇA: 'imdbID' virou 'id'
           );
           // --- Fim da mudança ---
 
-          setMovies(uniqueMovies); // <--- Passamos a lista limpa para o estado
+          setMovies(uniqueMovies);
 
         } else {
-          setError(response.data.Error || 'Nenhum filme encontrado');
+          // <--- MUDANÇA: 'Error' virou 'status_message' (padrão do TMDb)
+          setError(response.data.status_message || 'Nenhum filme encontrado');
         }
       } catch (err) {
         setError('Erro ao buscar filmes. Verifique sua conexão ou API Key.');
@@ -59,6 +62,8 @@ const ListaPontosTuristicos = () => {
   }, []);
 
   const handleFilmePress = (filme) => {
+    // <--- MUDANÇA: 'pontoDetalhes' agora passa o objeto 'filme' da TMDb
+    // A tela de detalhes vai usar 'filme.id' em vez de 'filme.imdbID'
     navigation.navigate('DetalhesPonto', { pontoDetalhes: filme });
   };
 
@@ -81,15 +86,15 @@ const ListaPontosTuristicos = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Filmes (Ex: "Batman")</Text>
+      <Text style={styles.title}>Filmes</Text>
       <FlatList
         style={{ width: '100%' }}
         data={movies}
-        keyExtractor={(item) => item.imdbID}
+        keyExtractor={(item) => item.id.toString()} // <--- MUDANÇA: 'imdbID' virou 'id' (e convertemos para string)
         renderItem={({ item }) => (
           <PontoTuristicoCard
-            ponto={item} 
-            onPress={() => handleFilmePress(item)} 
+            ponto={item}
+            onPress={() => handleFilmePress(item)}
           />
         )}
       />
