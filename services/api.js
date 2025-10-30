@@ -1,8 +1,13 @@
 // services/api.js
-import axios from 'axios'; // <--- Importe o Axios
+import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://jsonplaceholder.typicode.com', // <--- URL base da API de exemplo
+  baseURL: 'https://jsonplaceholder.typicode.com', // Base URL da nossa API de exemplo
 });
 
-export default api; // <--- Exporte a instância configurada do Axios
+// Adiciona métodos para POST, PUT e DELETE
+export const createPost = (data) => api.post('/posts', data); // POST para criar
+export const updatePost = (id, data) => api.put(`/posts/${id}`, data); // PUT para atualizar
+export const deletePost = (id) => api.delete(`/posts/${id}`); // DELETE para excluir
+
+export default api; // Mantém a exportação padrão para requisições GET
