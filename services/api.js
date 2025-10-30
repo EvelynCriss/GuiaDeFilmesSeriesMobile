@@ -1,9 +1,9 @@
 // services/api.js
-import axios from 'axios'; // <--- Importe o Axios
+import axios from 'axios';
 
-// <--- MUDANÇA: Atualizada a baseURL para a OMDb API
+// <--- MUDANÇA: Atualizada a baseURL para a TMDb API v3
 const api = axios.create({
-  baseURL: 'https://www.omdbapi.com/', 
+  baseURL: 'https://api.themoviedb.org/3',
 });
 
-export default api; // <--- Exporte a instância configurada do Axios
+export default api;
