@@ -1,15 +1,15 @@
-// screens/ListaPontosTuristicos.js
+// screens/ListaFilmesScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import PontoTuristicoCard from '../components/PontoTuristicoCard';
+import FilmeCard from '../components/FilmeCard'; // <--- MUDANÇA: Importa o novo Card
 import api from '../services/api';
-import { TMDB_API_KEY } from '@env'; // <--- MUDANÇA: Importado do @env
+import { TMDB_API_KEY } from '@env';
 
-// <--- MUDANÇA: Chave vindo do .env
 const API_KEY = TMDB_API_KEY;
 
-const ListaPontosTuristicos = () => {
+// <--- MUDANÇA: Nome do componente
+const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
 
   const [movies, setMovies] = useState([]);
@@ -23,31 +23,19 @@ const ListaPontosTuristicos = () => {
         setLoading(false);
         return;
       }
-
       try {
-        // <--- MUDANÇA: Endpoint e parâmetros atualizados para TMDb
-        const response = await api.get('/search/movie', {
+        const response = await api.get('/trending/movie/day', {
           params: {
-            query: 'Fast and furious', // <--- MUDANÇA: 's' virou 'query'
-            api_key: API_KEY,          // <--- MUDANÇA: 'apikey' virou 'api_key'
+            api_key: API_KEY,
             language: 'pt-BR',
           }
         });
-
-        // <--- MUDANÇA: 'Search' virou 'results'
         if (response.data.results) {
-
-          // <--- MUDANÇA AQUI: Filtra os duplicados ---
-          // Usamos um Map para garantir que cada 'id' (antes 'imdbID') apareça apenas uma vez.
           const uniqueMovies = Array.from(
-            new Map(response.data.results.map(movie => [movie.id, movie])).values() // <--- MUDANÇA: 'imdbID' virou 'id'
+            new Map(response.data.results.map(movie => [movie.id, movie])).values()
           );
-          // --- Fim da mudança ---
-
           setMovies(uniqueMovies);
-
         } else {
-          // <--- MUDANÇA: 'Error' virou 'status_message' (padrão do TMDb)
           setError(response.data.status_message || 'Nenhum filme encontrado');
         }
       } catch (err) {
@@ -57,14 +45,12 @@ const ListaPontosTuristicos = () => {
         setLoading(false);
       }
     };
-
     fetchMovies();
   }, []);
 
-  const handleFilmePress = (filme) => {
-    // <--- MUDANÇA: 'pontoDetalhes' agora passa o objeto 'filme' da TMDb
-    // A tela de detalhes vai usar 'filme.id' em vez de 'filme.imdbID'
-    navigation.navigate('DetalhesPonto', { pontoDetalhes: filme });
+  // <--- MUDANÇA: Nome da função e parâmetros de navegação
+  const handleMediaPress = (media) => {
+    navigation.navigate('DetalhesFilme', { mediaItem: media }); // <--- Rota 'DetalhesFilme', parâmetro 'mediaItem'
   };
 
   if (loading) {
@@ -86,15 +72,16 @@ const ListaPontosTuristicos = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Filmes</Text>
+      <Text style={styles.title}>Filmes em Alta</Text>
       <FlatList
         style={{ width: '100%' }}
         data={movies}
-        keyExtractor={(item) => item.id.toString()} // <--- MUDANÇA: 'imdbID' virou 'id' (e convertemos para string)
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <PontoTuristicoCard
-            ponto={item}
-            onPress={() => handleFilmePress(item)}
+          // <--- MUDANÇA: Usa o FilmeCard e passa a prop 'media'
+          <FilmeCard
+            media={item}
+            onPress={() => handleMediaPress(item)}
           />
         )}
       />
@@ -124,4 +111,5 @@ const styles = StyleSheet.create({
   }
 });
 
-export default ListaPontosTuristicos;
+// <--- MUDANÇA: Exporta o novo nome do componente
+export default ListaFilmesScreen;

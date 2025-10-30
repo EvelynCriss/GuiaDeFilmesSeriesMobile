@@ -1,3 +1,4 @@
+// screens/DetalhesFilmeScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Button, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -9,12 +10,14 @@ import { TMDB_API_KEY } from '@env';
 const API_KEY = TMDB_API_KEY;
 const POSTER_BASE_URL_W500 = 'https://image.tmdb.org/t/p/w500';
 
-const DetalhesPontoTuristico = () => {
+// <--- MUDANÇA: Nome do componente
+const DetalhesFilmeScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { isFavorite, toggleFavorite } = useFavorites();
 
-  const { pontoDetalhes: filmeBase } = route.params;
+  // <--- MUDANÇA: Parâmetro 'pontoDetalhes' agora é 'mediaItem'
+  const { mediaItem: filmeBase } = route.params;
 
   const [movieDetails, setMovieDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -76,20 +79,14 @@ const DetalhesPontoTuristico = () => {
     );
   }
 
-  // --- MUDANÇAS DE ROBUSTEZ AQUI ---
-
   const handleToggleFavorite = () => {
     toggleFavorite(movieDetails.id);
   };
   const favoriteIconName = isFavorite(movieDetails.id) ? 'heart' : 'heart-outline';
   const favoriteIconColor = isFavorite(movieDetails.id) ? 'red' : 'gray';
 
-  // Lógica movida para DEPOIS da verificação de 'loading' e 'error'
   const director = movieDetails?.credits?.crew?.find(person => person.job === 'Director');
-  
-  // <--- CORREÇÃO: Adicionado '?' em 'cast' para evitar crash se 'credits' não tiver 'cast'
   const actors = movieDetails?.credits?.cast?.slice(0, 5).map(person => person.name).join(', ');
-
   const year = movieDetails.release_date ? new Date(movieDetails.release_date).getFullYear() : 'N/A';
   const runtime = movieDetails.runtime ? `${movieDetails.runtime} min` : 'N/A';
 
@@ -108,26 +105,18 @@ const DetalhesPontoTuristico = () => {
         </View>
 
         <Text style={styles.metaInfo}>{year} · {runtime}</Text>
-
-        {/* <--- CORREÇÃO: Adicionado '?' em 'genres' e '||' para caso seja nulo */}
         <Text style={styles.genreText}>
           {movieDetails.genres?.map(g => g.name).join(', ') || 'Gênero não informado'}
         </Text>
-
         <Text style={styles.sectionTitle}>Enredo</Text>
-        {/* <--- CORREÇÃO: Adicionado '||' para caso 'overview' seja vazio ou nulo */}
         <Text style={styles.descriptionText}>
           {movieDetails.overview || 'Sinopse não disponível.'}
         </Text>
-
         <Text style={styles.sectionTitle}>Diretor</Text>
         <Text style={styles.detailText}>{director ? director.name : 'N/A'}</Text>
-
         <Text style={styles.sectionTitle}>Atores</Text>
         <Text style={styles.detailText}>{actors || 'N/A'}</Text>
-
         <Text style={styles.sectionTitle}>Avaliações</Text>
-        {/* <--- CORREÇÃO: Verificação se 'vote_average' existe antes de formatar */}
         <Text style={styles.detailText}>
           TMDb: {movieDetails.vote_average ? movieDetails.vote_average.toFixed(1) : 'N/A'}/10 (de {movieDetails.vote_count || 0} votos)
         </Text>
@@ -188,4 +177,5 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 18, color: 'red', textAlign: 'center', marginVertical: 50 }
 });
 
-export default DetalhesPontoTuristico;
+// <--- MUDANÇA: Exporta o novo nome
+export default DetalhesFilmeScreen;

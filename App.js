@@ -5,9 +5,9 @@ import { createStackNavigator } from '@react-navigation/stack';
  
 import { FavoritesProvider } from './context/FavoritesContext';
  
-// Importe suas telas
-import ListaPontosTuristicos from './screens/ListaPontosTuristicos'; // O nome do arquivo foi mantido, mas agora é uma lista de filmes
-import DetalhesPontoTuristico from './screens/DetalhesPontoTuristico'; // O nome do arquivo foi mantido, mas agora são detalhes do filme
+// <--- MUDANÇA: Nomes dos arquivos importados atualizados
+import ListaFilmesScreen from './screens/ListaFilmesScreen'; 
+import DetalhesFilmeScreen from './screens/DetalhesFilmeScreen'; 
  
 const Stack = createStackNavigator();
  
@@ -15,17 +15,16 @@ export default function App() {
   return (
     <FavoritesProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="ListaPontos">
+        {/* <--- MUDANÇA: Rota inicial e nomes das rotas atualizados */}
+        <Stack.Navigator initialRouteName="ListaFilmes">
           <Stack.Screen
-            name="ListaPontos"
-            component={ListaPontosTuristicos}
-            // <--- MUDANÇA: Título da tela atualizado
-            options={{ title: 'Lista de Filmes' }}
+            name="ListaFilmes" // <--- MUDANÇA: Nome da rota
+            component={ListaFilmesScreen} // <--- MUDANÇA: Componente
+            options={{ title: 'Filmes em Alta' }} // <--- MUDANÇA: Título
           />
           <Stack.Screen
-            name="DetalhesPonto"
-            component={DetalhesPontoTuristico}
-            // <--- MUDANÇA: Título da tela atualizado
+            name="DetalhesFilme" // <--- MUDANÇA: Nome da rota
+            component={DetalhesFilmeScreen} // <--- MUDANÇA: Componente
             options={{ title: 'Detalhes do Filme' }}
           />
         </Stack.Navigator>
