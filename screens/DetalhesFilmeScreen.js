@@ -16,6 +16,7 @@ import {
   Share,
   Alert,
 } from 'react-native';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
@@ -55,6 +56,8 @@ const DetalhesFilmeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
   const [collectionMovies, setCollectionMovies] = useState([]);
+  const [trailerKey, setTrailerKey] = useState(null);
+  const [showVideo, setShowVideo] = useState(false);
 
   const scrollX = React.useRef(new Animated.Value(0)).current;
 
@@ -79,7 +82,7 @@ const DetalhesFilmeScreen = () => {
             params: {
               api_key: API_KEY,
               language: 'pt-BR',
-              append_to_response: 'credits,reviews',
+              append_to_response: 'credits,reviews,videos',
             },
           }),
           api.get(`/movie/${filmeBase.id}/reviews`, {
@@ -93,6 +96,33 @@ const DetalhesFilmeScreen = () => {
         if (detailsResponse.data) {
           const details = detailsResponse.data;
           setMovieDetails(details);
+
+          if (details.videos && details.videos.results) {
+            const videos = details.videos.results;
+
+            // Tenta achar o Trailer Oficial do YouTube
+            const officialTrailer = videos.find(
+              (v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official === true
+            );
+
+            if (officialTrailer) {
+              setTrailerKey(officialTrailer.key);
+            } else {
+              // Se não achar, pega o primeiro "Trailer" que for do YouTube
+              const anyTrailer = videos.find(
+                (v) => v.site === 'YouTube' && v.type === 'Trailer'
+              );
+              if (anyTrailer) {
+                setTrailerKey(anyTrailer.key);
+              } else {
+                // Se ainda não achar, pega o primeiro vídeo do YouTube (pode ser teaser, etc)
+                const anyVideo = videos.find((v) => v.site === 'YouTube');
+                if (anyVideo) {
+                  setTrailerKey(anyVideo.key);
+                }
+              }
+            }
+          }
 
           // Buscar Coleção/Franquia
           if (details.belongs_to_collection) {
@@ -118,7 +148,7 @@ const DetalhesFilmeScreen = () => {
         // Lógica de combinação de reviews
         const ptReviews = detailsResponse.data.reviews?.results || [];
         const enReviews = englishReviewsResponse.data?.results || [];
-        
+
         const uniqueReviewsMap = new Map();
         ptReviews.forEach(review => uniqueReviewsMap.set(review.id, review));
         enReviews.forEach(review => {
@@ -126,7 +156,7 @@ const DetalhesFilmeScreen = () => {
             uniqueReviewsMap.set(review.id, review);
           }
         });
-        
+
         const combinedReviews = Array.from(uniqueReviewsMap.values()).filter(Boolean);
         setReviews(combinedReviews);
 
@@ -140,6 +170,21 @@ const DetalhesFilmeScreen = () => {
 
     fetchDetailsAndReviews();
   }, [filmeBase?.id]);
+
+  useEffect(() => {
+    // Se o 'loading' da página terminou E nós temos uma 'trailerKey'
+    if (!loading && trailerKey) {
+      
+      // Espere 500ms para dar tempo da UI principal renderizar
+      // e só então mostre o vídeo.
+      const timer = setTimeout(() => {
+        setShowVideo(true);
+      }, 500); // 500ms é um bom ponto de partida
+
+      // Limpa o timer se o componente for desmontado
+      return () => clearTimeout(timer);
+    }
+  }, [loading, trailerKey]);
 
   // --- Funções ---
   const toggleReviewExpansion = (reviewId) => {
@@ -216,9 +261,9 @@ const DetalhesFilmeScreen = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <Text style={styles.errorText}>{error}</Text>
-        <Button 
-          title="Tentar Novamente" 
-          onPress={() => navigation.goBack()} 
+        <Button
+          title="Tentar Novamente"
+          onPress={() => navigation.goBack()}
           color={COLORS.accent1}
         />
       </View>
@@ -229,9 +274,9 @@ const DetalhesFilmeScreen = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <Text style={styles.errorText}>Filme não encontrado.</Text>
-        <Button 
-          title="Voltar" 
-          onPress={() => navigation.goBack()} 
+        <Button
+          title="Voltar"
+          onPress={() => navigation.goBack()}
           color={COLORS.accent1}
         />
       </View>
@@ -288,14 +333,14 @@ const DetalhesFilmeScreen = () => {
             }}
             style={styles.poster}
           />
-          
+
           <View style={styles.headerBelowPoster}>
             <TouchableOpacity onPress={onShare} style={styles.actionButton}>
               <Ionicons name="share-social-outline" size={28} color={COLORS.textPrimary} />
             </TouchableOpacity>
 
             <Text style={styles.titleBelowPoster}>{movieDetails?.title || 'Carregando...'}</Text>
-            
+
             <TouchableOpacity
               onPress={handleToggleFavorite}
               style={styles.actionButton}
@@ -307,11 +352,25 @@ const DetalhesFilmeScreen = () => {
               />
             </TouchableOpacity>
           </View>
-          
-          <Text style={styles.metaInfo}>
-            {year} · {runtime}
-          </Text>
-          
+
+          <View style={styles.metaAndRatingWrapper}>
+            {/* O texto normal do ano e duração */}
+            <Text style={styles.metaInfoText}>
+              {year} · {runtime}
+            </Text>
+            
+            {/* O "Pill" da avaliação (com fundo e tamanho grande) */}
+            {movieDetails?.vote_average > 0 && (
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={20} color={COLORS.accent1} />
+                <Text style={styles.ratingText}>
+                  {movieDetails.vote_average.toFixed(1)}
+                  <Text style={styles.ratingTextSecondary}> / 10</Text>
+                </Text>
+              </View>
+            )}
+          </View>
+
           <View style={styles.genreContainer}>
             {movieDetails?.genres?.map((genre) => (
               <View key={genre.id} style={styles.genrePill}>
@@ -320,13 +379,37 @@ const DetalhesFilmeScreen = () => {
             ))}
           </View>
 
+          {trailerKey && (
+            <>
+              <Text style={styles.sectionTitle}>Trailer</Text>
+              <View style={styles.trailerContainer}>
+                {/* Verifica se 'showVideo' é true. 
+                  Se for, mostra o player.
+                  Se não for, mostra um placeholder com loading.
+                */}
+                {showVideo ? (
+                  <YoutubePlayer
+                    height={220}
+                    play={false}
+                    videoId={trailerKey}
+                    webViewStyle={{ opacity: 0.99 }}
+                  />
+                ) : (
+                  <View style={styles.videoPlaceholder}>
+                    <ActivityIndicator size="large" color={COLORS.accent1} />
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+
           <Text style={styles.sectionTitle}>Enredo</Text>
           <View style={styles.descriptionBox}>
             <Text style={styles.descriptionText}>
               {movieDetails?.overview || 'Sinopse não disponível.'}
             </Text>
           </View>
-          
+
           <View style={styles.infoBlockContainer}>
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
@@ -346,13 +429,6 @@ const DetalhesFilmeScreen = () => {
                   {director ? director.name : 'N/A'}
                 </Text>
               </View>
-              <View style={[styles.infoItem, { alignItems: 'flex-end' }]}>
-                <Text style={styles.infoLabel}>Avaliação TMDb</Text>
-                <Text style={styles.infoValue}>
-                  {movieDetails?.vote_average ? movieDetails.vote_average.toFixed(1) : 'N/A'}
-                  <Text style={{ fontSize: 12, opacity: 0.7 }}> / 10</Text>
-                </Text>
-              </View>
             </View>
             <View style={styles.infoItemFull}>
               <Text style={styles.infoLabel}>Elenco Principal</Text>
@@ -363,7 +439,7 @@ const DetalhesFilmeScreen = () => {
           {collectionMovies.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>
-                {movieDetails?.belongs_to_collection?.name 
+                {movieDetails?.belongs_to_collection?.name
                   ? `Filmes relacionados`
                   : 'Mais da Coleção'
                 }
@@ -371,9 +447,9 @@ const DetalhesFilmeScreen = () => {
               <FlatList
                 data={collectionMovies}
                 renderItem={({ item }) => (
-                  <CollectionCardItem 
-                    item={item} 
-                    onPress={() => navigation.push('DetalhesFilme', { mediaItem: item })} 
+                  <CollectionCardItem
+                    item={item}
+                    onPress={() => navigation.push('DetalhesFilme', { mediaItem: item })}
                   />
                 )}
                 keyExtractor={(item, index) => (item ? item.id.toString() : index.toString())}
@@ -387,7 +463,7 @@ const DetalhesFilmeScreen = () => {
           {reviews.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>Reviews</Text>
-              
+
               <Animated.FlatList
                 data={reviews}
                 renderItem={({ item, index }) => (
@@ -407,14 +483,15 @@ const DetalhesFilmeScreen = () => {
                   [{ nativeEvent: { contentOffset: { x: scrollX } } }],
                   { useNativeDriver: true }
                 )}
-                scrollEventThrottle={16} 
-                snapToInterval={ITEM_SIZE} 
+                scrollEventThrottle={16}
+                snapToInterval={ITEM_SIZE}
                 snapToAlignment="start"
-                decelerationRate="fast" 
+                decelerationRate="fast"
                 contentContainerStyle={styles.reviewCarouselContainer}
               />
             </>
           )}
+
         </View>
       </ScrollView>
 
@@ -479,7 +556,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 10,
     marginTop: 20,
-    paddingHorizontal: 20, 
+    paddingHorizontal: 20,
   },
   actionButton: {
     padding: 5,
@@ -511,14 +588,42 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 10,
   },
-  metaInfo: {
-    fontSize: 16,
+  metaAndRatingWrapper: {
+    flexDirection: 'row',       // Alinha os itens lado a lado
+    justifyContent: 'center',  // Centraliza o grupo na tela
+    alignItems: 'center',      // Alinha o texto e o pill verticalmente
+    marginTop: 10,
+    marginBottom: 5,
+    paddingHorizontal: 20,
+    flexWrap: 'wrap',          // Permite quebrar se não couber
+  },
+  metaInfoText: {
+    fontSize: 16,              // Tamanho normal para o texto
     color: COLORS.textPrimary,
     opacity: 0.7,
-    marginBottom: 5,
-    textAlign: 'center',
-    marginTop: 10,
-    paddingHorizontal: 20, 
+    marginRight: 15,           // <-- Adiciona espaço entre o texto e o pill
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.infoBoxBg, // <-- O fundo que você queria
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    // Removemos 'marginTop' e 'alignSelf' daqui, pois o wrapper controla
+  },
+  ratingText: {
+    fontSize: 18,             // <-- O tamanho grande que você queria
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    marginLeft: 8,
+  },
+  ratingTextSecondary: {
+    fontSize: 14,
+    fontWeight: 'normal',
+    color: COLORS.textPrimary,
+    opacity: 0.7,
   },
   genreContainer: {
     flexDirection: 'row',
@@ -526,7 +631,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 10,
     marginBottom: 20,
-    paddingHorizontal: 20, 
+    paddingHorizontal: 20,
   },
   genrePill: {
     backgroundColor: COLORS.accent2,
@@ -548,13 +653,27 @@ const styles = StyleSheet.create({
     marginTop: 25,
     marginBottom: 10,
     width: '100%',
-    paddingHorizontal: 20, 
+    paddingHorizontal: 20,
+  },
+  trailerContainer: {
+    width: '90%',
+    alignSelf: 'center',
+    borderRadius: 10,
+    overflow: 'hidden', // Importante para o player não "vazar" as bordas
+    marginTop: 10,
+    backgroundColor: COLORS.infoBoxBg, // Cor de fundo enquanto o player carrega
+  },
+  videoPlaceholder: {
+    height: 220, // Mesma altura do player
+    justifyContent: 'center',
+    alignItems: 'center',
+    // O 'backgroundColor' já vem do trailerContainer
   },
   descriptionBox: {
     backgroundColor: COLORS.infoBoxBg,
     borderRadius: 10,
     padding: 15,
-    width: '90%', 
+    width: '90%',
     alignSelf: 'center',
   },
   descriptionText: {
@@ -605,7 +724,7 @@ const styles = StyleSheet.create({
   reviewCarouselContainer: {
     paddingHorizontal: SPACER_WIDTH,
     paddingVertical: 10,
-    paddingBottom: 20, 
+    paddingBottom: 20,
   },
 });
 

@@ -72,7 +72,7 @@ export default function App() {
           <Stack.Screen
             name="DetalhesFilme" // <--- MUDANÇA: Nome da rota
             component={DetalhesFilmeScreen} // <--- MUDANÇA: Componente
-            options={{ title: 'Detalhes do Filme' }}
+            options={{ headerShown: false }}
           />
         </Stack.Navigator>
       </NavigationContainer>
