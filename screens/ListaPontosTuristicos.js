@@ -2,14 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import PontoTuristicoCard from '../components/PontoTuristicoCard';
+import FilmeCard from '../components/FilmeCard'; 
 import api from '../services/api';
-import { TMDB_API_KEY } from '@env'; // <--- MUDANÇA: Importado do @env
+import { TMDB_API_KEY } from '@env';
+
+import { COLORS } from '../components/ColorPalete'; // <--- MUDANÇA: Importa as cores
 
 // <--- MUDANÇA: Chave vindo do .env
 const API_KEY = TMDB_API_KEY;
 
-const ListaPontosTuristicos = () => {
+const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
 
   const [movies, setMovies] = useState([]);
@@ -61,17 +63,17 @@ const ListaPontosTuristicos = () => {
     fetchMovies();
   }, []);
 
-  const handleFilmePress = (filme) => {
-    // <--- MUDANÇA: 'pontoDetalhes' agora passa o objeto 'filme' da TMDb
-    // A tela de detalhes vai usar 'filme.id' em vez de 'filme.imdbID'
-    navigation.navigate('DetalhesPonto', { pontoDetalhes: filme });
+  const handleMediaPress = (media) => {
+    navigation.navigate('DetalhesFilme', { mediaItem: media }); 
   };
 
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Carregando filmes...</Text>
+        {/* <--- MUDANÇA: Cor do indicador --- */}
+        <ActivityIndicator size="large" color={COLORS.accent1} /> 
+        {/* <--- MUDANÇA: Estilo do texto --- */}
+        <Text style={styles.loadingText}>Carregando filmes...</Text> 
       </View>
     );
   }
@@ -86,15 +88,14 @@ const ListaPontosTuristicos = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Filmes</Text>
       <FlatList
         style={{ width: '100%' }}
         data={movies}
         keyExtractor={(item) => item.id.toString()} // <--- MUDANÇA: 'imdbID' virou 'id' (e convertemos para string)
         renderItem={({ item }) => (
-          <PontoTuristicoCard
-            ponto={item}
-            onPress={() => handleFilmePress(item)}
+          <FilmeCard
+            media={item}
+            onPress={() => handleMediaPress(item)}
           />
         )}
       />
@@ -102,13 +103,13 @@ const ListaPontosTuristicos = () => {
   );
 };
 
-// ... (estilos permanecem os mesmos)
+// <--- MUDANÇA: Estilos atualizados ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     paddingTop: 40,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: COLORS.background, // <--- MUDANÇA
   },
   center: {
     justifyContent: 'center',
@@ -117,11 +118,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 20,
     fontWeight: 'bold',
+    color: COLORS.textPrimary, // <--- MUDANÇA
   },
   errorText: {
     fontSize: 16,
-    color: 'red',
+    color: COLORS.accent1, // <--- MUDANÇA
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  // <--- MUDANÇA: Novo estilo para texto de loading ---
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.textPrimary,
   }
 });
 
-export default ListaPontosTuristicos;
+export default ListaFilmesScreen;
