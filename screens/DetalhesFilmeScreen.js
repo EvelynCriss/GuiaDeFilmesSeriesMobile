@@ -1,3 +1,4 @@
+// screens/DetalhesFilmeScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -236,8 +237,6 @@ const DetalhesFilmeScreen = () => {
       </View>
     );
   }
-
-  // --- MUDANÇAS DE ROBUSTEZ AQUI ---
 
   // --- Lógica de renderização ---
   const handleToggleFavorite = () => {
@@ -496,6 +495,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     marginTop: -20,
     paddingTop: 20,
+    marginBottom: 30,
     alignItems: 'center',
   },
   poster: {
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
   reviewCarouselContainer: {
     paddingHorizontal: SPACER_WIDTH,
     paddingVertical: 10,
-    paddingBottom: 70, 
+    paddingBottom: 20, 
   },
 });
 

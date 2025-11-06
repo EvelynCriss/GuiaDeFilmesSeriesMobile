@@ -28,9 +28,8 @@ const ListaFilmesScreen = () => {
 
       try {
         // <--- MUDANÇA: Endpoint e parâmetros atualizados para TMDb
-        const response = await api.get('/search/movie', {
+        const response = await api.get('/movie/popular', {
           params: {
-            query: 'Fast and furious', // <--- MUDANÇA: 's' virou 'query'
             api_key: API_KEY,          // <--- MUDANÇA: 'apikey' virou 'api_key'
             language: 'pt-BR',
           }

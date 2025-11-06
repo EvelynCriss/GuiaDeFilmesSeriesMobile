@@ -70,13 +70,9 @@ export default function App() {
             }}
           />
           <Stack.Screen
-            name="DetalhesFilme" 
-            component={DetalhesFilmeScreen} 
-            options={{ 
-              title: 'Detalhes do Filme',
-              // <--- O HEADER AGORA ESTÁ HABILITADO E ESTILIZADO
-              // (O botão "voltar" aparece aqui automaticamente)
-            }}
+            name="DetalhesFilme" // <--- MUDANÇA: Nome da rota
+            component={DetalhesFilmeScreen} // <--- MUDANÇA: Componente
+            options={{ title: 'Detalhes do Filme' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

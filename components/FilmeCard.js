@@ -1,37 +1,36 @@
-// components/PontoTuristicoCard.js
+// components/FilmeCard.js
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
 
-// <--- MUDANÇA: URL base para imagens da TMDb (tamanho menor para lista)
 const POSTER_BASE_URL_W200 = 'https://image.tmdb.org/t/p/w200';
 
-const PontoTuristicoCard = ({ ponto: filme, onPress }) => {
+// <--- MUDANÇA: Nome do componente e prop de 'ponto: filme' para 'media'
+const FilmeCard = ({ media, onPress }) => { 
   const { isFavorite, toggleFavorite } = useFavorites();
 
   const handleToggleFavorite = () => {
-    toggleFavorite(filme.id); // <--- MUDANÇA: 'imdbID' virou 'id'
+    toggleFavorite(media.id); // <--- MUDANÇA: usa media.id
   };
 
-  const favoriteIconName = isFavorite(filme.id) ? 'heart' : 'heart-outline'; // <--- MUDANÇA: 'imdbID' virou 'id'
-  const favoriteIconColor = isFavorite(filme.id) ? 'red' : 'gray';
+  const favoriteIconName = isFavorite(media.id) ? 'heart' : 'heart-outline'; // <--- MUDANÇA: usa media.id
+  const favoriteIconColor = isFavorite(media.id) ? 'red' : 'gray';
 
-  // <--- MUDANÇA: Extrai o ano do 'release_date' (ex: "2023-10-30" vira "2023")
-  const year = filme.release_date ? filme.release_date.split('-')[0] : 'N/A';
+  // <--- MUDANÇA: usa media.release_date
+  const year = media.release_date ? media.release_date.split('-')[0] : 'N/A';
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.touchable}>
       <View style={styles.card}>
-        {/* <--- MUDANÇA: 'Poster' virou 'poster_path' e precisa da URL base */}
+        {/* <--- MUDANÇA: usa media.poster_path */}
         <Image
-          source={{ uri: filme.poster_path ? `${POSTER_BASE_URL_W200}${filme.poster_path}` : 'https://via.placeholder.com/100x150.png?text=No+Image' }}
+          source={{ uri: media.poster_path ? `${POSTER_BASE_URL_W200}${media.poster_path}` : 'https://via.placeholder.com/100x150.png?text=No+Image' }}
           style={styles.poster}
         />
         <View style={styles.infoContainer}>
-          {/* <--- MUDANÇA: 'Title' virou 'title' */}
-          <Text style={styles.titulo}>{filme.title}</Text>
-          {/* <--- MUDANÇA: 'Year' virou 'release_date' (formatado) */}
+          {/* <--- MUDANÇA: usa media.title */}
+          <Text style={styles.titulo}>{media.title}</Text>
           <Text style={styles.descricao}>{year}</Text>
         </View>
         <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteButton}>
@@ -42,6 +41,7 @@ const PontoTuristicoCard = ({ ponto: filme, onPress }) => {
   );
 };
 
+// ... (estilos permanecem os mesmos)
 const styles = StyleSheet.create({
   touchable: { width: '100%' },
   card: {
@@ -66,4 +66,5 @@ const styles = StyleSheet.create({
   favoriteButton: { padding: 5 },
 });
 
-export default PontoTuristicoCard;
+// <--- MUDANÇA: Exporta o novo nome
+export default FilmeCard;
