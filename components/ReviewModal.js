@@ -9,10 +9,13 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from './ColorPalete';
+import { useTheme } from '../context/ThemeContext';
 import RenderStars from './RenderStars'; // Importa o componente de estrelas
 
 const ReviewModal = ({ visible, onClose, review }) => {
+  const { colors: COLORS } = useTheme(); // <--- MUDANÇA
+  const styles = getStyles(COLORS);
+  
   if (!review) {
     return null; // Não renderiza nada se não houver review selecionado
   }
@@ -54,7 +57,7 @@ const ReviewModal = ({ visible, onClose, review }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS) => StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: COLORS.modalOverlayBg,

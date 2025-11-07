@@ -2,9 +2,11 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from './ColorPalete';
+import { useTheme } from '../context/ThemeContext';
 
 const RenderStars = ({ rating }) => {
+  const { colors: COLORS } = useTheme();
+
   const numStars = Math.round(rating / 2);
 
   if (rating === null || rating === undefined || rating === 0) {

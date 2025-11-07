@@ -5,14 +5,14 @@ import { useNavigation } from '@react-navigation/native';
 import FilmeCard from '../components/FilmeCard'; 
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
-
-import { COLORS } from '../components/ColorPalete'; // <--- MUDANÇA: Importa as cores
+import { useTheme } from '../context/ThemeContext';
 
 // <--- MUDANÇA: Chave vindo do .env
 const API_KEY = TMDB_API_KEY;
 
 const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
+  const { colors: COLORS } = useTheme();
 
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +66,8 @@ const ListaFilmesScreen = () => {
     navigation.navigate('DetalhesFilme', { mediaItem: media }); 
   };
 
+  const styles = getStyles(COLORS);
+
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -103,7 +105,7 @@ const ListaFilmesScreen = () => {
 };
 
 // <--- MUDANÇA: Estilos atualizados ---
-const styles = StyleSheet.create({
+const getStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',

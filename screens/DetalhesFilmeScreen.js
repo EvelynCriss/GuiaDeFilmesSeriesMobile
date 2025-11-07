@@ -22,7 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
-import { COLORS } from '../components/ColorPalete';
+import { useTheme } from '../context/ThemeContext';
 
 // --- NOVOS IMPORTS DOS COMPONENTES ---
 import CollectionCardItem from '../components/CollectionCardItem';
@@ -43,6 +43,7 @@ const SPACER_WIDTH = (SCREEN_WIDTH - ITEM_SIZE) / 2;
 
 // --- Início do Componente ---
 const DetalhesFilmeScreen = () => {
+  const { colors: COLORS } = useTheme();
   const route = useRoute();
   const navigation = useNavigation();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -248,6 +249,8 @@ const DetalhesFilmeScreen = () => {
   };
 
   // --- Telas de Loading e Erro ---
+  const styles = getStyles(COLORS);
+  
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -362,7 +365,7 @@ const DetalhesFilmeScreen = () => {
             {/* O "Pill" da avaliação (com fundo e tamanho grande) */}
             {movieDetails?.vote_average > 0 && (
               <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={20} color={COLORS.accent1} />
+                <Ionicons name="flame" size={20} color={COLORS.accent1} />
                 <Text style={styles.ratingText}>
                   {movieDetails.vote_average.toFixed(1)}
                   <Text style={styles.ratingTextSecondary}> / 10</Text>
@@ -505,7 +508,7 @@ const DetalhesFilmeScreen = () => {
 };
 
 // --- StyleSheet ---
-const styles = StyleSheet.create({
+const getStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -630,7 +633,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     marginTop: 10,
-    marginBottom: 20,
     paddingHorizontal: 20,
   },
   genrePill: {

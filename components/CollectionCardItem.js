@@ -1,33 +1,45 @@
 // components/CollectionCardItem.js
 import React from 'react';
 import { TouchableOpacity, Image, Text, StyleSheet } from 'react-native';
-import { COLORS } from './ColorPalete';
+import { useTheme } from '../context/ThemeContext';
 
-// A constante da URL base do pôster é necessária aqui
 const POSTER_BASE_URL_W500 = 'https://image.tmdb.org/t/p/w500';
 
-const CollectionCardItem = ({ item, onPress }) => (
-  <TouchableOpacity onPress={onPress} style={styles.collectionCard}>
-    <Image
-      source={{
-        uri: item.poster_path
-          ? `${POSTER_BASE_URL_W500}${item.poster_path}`
-          : 'https://via.placeholder.com/200x300.png?text=No+Image',
-      }}
-      style={styles.collectionPoster}
-    />
-    <Text style={styles.collectionTitle} numberOfLines={2}>
-      {item.title}
-    </Text>
-    {item.release_date ? (
-      <Text style={styles.collectionYear}>
-        {new Date(item.release_date).getFullYear()}
-      </Text>
-    ) : null}
-  </TouchableOpacity>
-);
+const CollectionCardItem = ({ item, onPress }) => {
+  const { colors: COLORS } = useTheme(); 
+  const styles = getStyles(COLORS); 
 
-const styles = StyleSheet.create({
+  // --- CORREÇÃO AQUI ---
+  // Define a URI da imagem. Usa o poster_path se existir, senão um placeholder.
+  const imageUri = item?.poster_path 
+    ? `${POSTER_BASE_URL_W500}${item.poster_path}` 
+    : 'https://via.placeholder.com/140x210.png?text=No+Image';
+  // --- FIM DA CORREÇÃO ---
+
+  return (
+    <TouchableOpacity onPress={onPress} style={styles.collectionCard}>
+      <Image
+        // --- CORREÇÃO AQUI ---
+        // Adiciona a propriedade 'source' que estava faltando
+        source={{ uri: imageUri }}
+        // --- FIM DA CORREÇÃO ---
+        style={styles.collectionPoster}
+        resizeMode="cover" // Garante que a imagem cubra o espaço
+      />
+      <Text style={styles.collectionTitle} numberOfLines={2}>
+        {item.title}
+      </Text>
+      {/* Adicionei o ano de volta, pois é útil */}
+      {item.release_date && (
+         <Text style={styles.collectionYear}>
+           {item.release_date.split('-')[0]}
+         </Text>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const getStyles = (COLORS) => StyleSheet.create({
   collectionCard: {
     width: 140,
     marginRight: 15,

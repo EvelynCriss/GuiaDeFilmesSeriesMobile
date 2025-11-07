@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from './ColorPalete';
+import { useTheme } from '../context/ThemeContext';
 import RenderStars from './RenderStars'; // Importa o componente de estrelas
 
 // Pegamos a largura da tela aqui apenas para o `substring`
@@ -17,7 +17,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.7;
 
 const ReviewCardItem = ({ item, index, scrollX, isExpanded, onOpenModal, ITEM_SIZE }) => {
-  // A lógica de animação permanece a mesma, usando props
+  const { colors: COLORS } = useTheme();
+  const styles = getStyles(COLORS);
+
   const inputRange = [
     (index - 1) * ITEM_SIZE,
     index * ITEM_SIZE,
@@ -82,7 +84,7 @@ const ReviewCardItem = ({ item, index, scrollX, isExpanded, onOpenModal, ITEM_SI
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (COLORS) => StyleSheet.create({
   reviewCard: {
     backgroundColor: COLORS.reviewCardBg,
     borderRadius: 10,
