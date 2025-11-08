@@ -55,7 +55,7 @@ function AppContent() {
           name="ListaFilmes" 
           component={ListaFilmesScreen} 
           options={{ 
-            title: 'Filmes em Alta',
+            title: '',
             headerLeft: () => (
               <TouchableOpacity 
                 onPress={() => alert('Abrir Perfil/Menu!')} 

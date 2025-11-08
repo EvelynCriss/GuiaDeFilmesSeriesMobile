@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext'; // <--- MUDANÇA: Importa o 
 
 const POSTER_BASE_URL_W200 = 'https://image.tmdb.org/t/p/w200';
 
-const FilmeCard = ({ media, onPress }) => { 
+const FilmeCard = ({ media, onPress, isCarousel = false }) => { 
   const { isFavorite, toggleFavorite } = useFavorites();
   const { colors: COLORS } = useTheme(); // <--- MUDANÇA: Pega as cores do tema
 
@@ -23,7 +23,27 @@ const FilmeCard = ({ media, onPress }) => {
   const year = media.release_date ? media.release_date.split('-')[0] : 'N/A';
 
   // <--- MUDANÇA: Passa COLORS para a função de estilos ---
-  const styles = getStyles(COLORS);
+  const styles = getStyles(COLORS, isCarousel);
+
+  if (isCarousel) {
+    return (
+      <TouchableOpacity onPress={onPress} style={styles.touchableCarousel}>
+        <View style={styles.cardCarousel}>
+          <Image
+            source={{ uri: media.poster_path ? `https://image.tmdb.org/t/p/w500${media.poster_path}` : 'https://via.placeholder.com/300x450.png?text=No+Image' }}
+            style={styles.posterCarousel}
+          />
+          <View style={styles.infoContainerCarousel}>
+            <Text style={styles.tituloCarousel} numberOfLines={2}>{media.title}</Text>
+            <Text style={styles.descricaoCarousel}>{year}</Text>
+          </View>
+          <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteButtonCarousel}>
+            <Ionicons name={favoriteIconName} size={28} color={favoriteIconColor} />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.touchable}>
@@ -45,7 +65,7 @@ const FilmeCard = ({ media, onPress }) => {
 };
 
 // <--- MUDANÇA: Estilos agora são uma função ---
-const getStyles = (COLORS) => StyleSheet.create({
+const getStyles = (COLORS, isCarousel) => StyleSheet.create({
   touchable: { 
     width: '100%' 
   },
@@ -87,6 +107,52 @@ const getStyles = (COLORS) => StyleSheet.create({
   },
   favoriteButton: { 
     padding: 5 
+  },
+  // Estilos para carrossel
+  touchableCarousel: {
+    width: 200,
+    marginRight: 15,
+  },
+  cardCarousel: {
+    alignItems: 'center',
+    backgroundColor: COLORS.infoBoxBg,
+    borderRadius: 12,
+    shadowColor: COLORS.shadowColor,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  posterCarousel: {
+    width: 200,
+    height: 300,
+    backgroundColor: COLORS.background,
+  },
+  infoContainerCarousel: {
+    width: '100%',
+    padding: 12,
+    alignItems: 'center',
+  },
+  tituloCarousel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  descricaoCarousel: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    opacity: 0.7,
+  },
+  favoriteButtonCarousel: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 8,
   },
 });
 

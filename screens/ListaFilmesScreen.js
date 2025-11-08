@@ -1,20 +1,21 @@
 // screens/ListaPontosTuristicos.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import FilmeCard from '../components/FilmeCard'; 
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
 import { useTheme } from '../context/ThemeContext';
 
-// <--- MUDANÇA: Chave vindo do .env
 const API_KEY = TMDB_API_KEY;
 
 const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
   const { colors: COLORS } = useTheme();
 
-  const [movies, setMovies] = useState([]);
+  const [popularMovies, setPopularMovies] = useState([]);
+  const [actionMovies, setActionMovies] = useState([]);
+  const [horrorMovies, setHorrorMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -27,30 +28,56 @@ const ListaFilmesScreen = () => {
       }
 
       try {
-        // <--- MUDANÇA: Endpoint e parâmetros atualizados para TMDb
-        const response = await api.get('/movie/popular', {
+        // Busca filmes populares
+        const popularResponse = await api.get('/movie/popular', {
           params: {
-            api_key: API_KEY,          // <--- MUDANÇA: 'apikey' virou 'api_key'
+            api_key: API_KEY,
             language: 'pt-BR',
           }
         });
 
-        // <--- MUDANÇA: 'Search' virou 'results'
-        if (response.data.results) {
+        // Busca filmes de ação (genre_id: 28)
+        const actionResponse = await api.get('/discover/movie', {
+          params: {
+            api_key: API_KEY,
+            language: 'pt-BR',
+            with_genres: 28, // Ação
+            sort_by: 'popularity.desc'
+          }
+        });
 
-          // <--- MUDANÇA AQUI: Filtra os duplicados ---
-          // Usamos um Map para garantir que cada 'id' (antes 'imdbID') apareça apenas uma vez.
-          const uniqueMovies = Array.from(
-            new Map(response.data.results.map(movie => [movie.id, movie])).values() // <--- MUDANÇA: 'imdbID' virou 'id'
+        // Busca filmes de terror (genre_id: 27)
+        const horrorResponse = await api.get('/discover/movie', {
+          params: {
+            api_key: API_KEY,
+            language: 'pt-BR',
+            with_genres: 27, // Terror
+            sort_by: 'popularity.desc'
+          }
+        });
+
+        // Remove duplicados e atualiza os estados
+        if (popularResponse.data.results) {
+          const uniquePopular = Array.from(
+            new Map(popularResponse.data.results.map(movie => [movie.id, movie])).values()
           );
-          // --- Fim da mudança ---
-
-          setMovies(uniqueMovies);
-
-        } else {
-          // <--- MUDANÇA: 'Error' virou 'status_message' (padrão do TMDb)
-          setError(response.data.status_message || 'Nenhum filme encontrado');
+          setPopularMovies(uniquePopular);
         }
+
+        if (actionResponse.data.results) {
+          const uniqueAction = Array.from(
+            new Map(actionResponse.data.results.map(movie => [movie.id, movie])).values()
+          );
+          setActionMovies(uniqueAction);
+        }
+
+        if (horrorResponse.data.results) {
+          const uniqueHorror = Array.from(
+            new Map(horrorResponse.data.results.map(movie => [movie.id, movie])).values()
+          );
+          setHorrorMovies(uniqueHorror);
+        }
+
       } catch (err) {
         setError('Erro ao buscar filmes. Verifique sua conexão ou API Key.');
         console.error(err);
@@ -71,9 +98,7 @@ const ListaFilmesScreen = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        {/* <--- MUDANÇA: Cor do indicador --- */}
         <ActivityIndicator size="large" color={COLORS.accent1} /> 
-        {/* <--- MUDANÇA: Estilo do texto --- */}
         <Text style={styles.loadingText}>Carregando filmes...</Text> 
       </View>
     );
@@ -88,29 +113,74 @@ const ListaFilmesScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        style={{ width: '100%' }}
-        data={movies}
-        keyExtractor={(item) => item.id.toString()} // <--- MUDANÇA: 'imdbID' virou 'id' (e convertemos para string)
-        renderItem={({ item }) => (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Seção Filmes em Alta */}
+      <Text style={styles.title}>Filmes em Alta</Text>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContainer}
+        snapToInterval={215}
+        decelerationRate="fast"
+        snapToAlignment="start"
+      >
+        {popularMovies.map((item) => (
           <FilmeCard
+            key={`popular-${item.id.toString()}`}
             media={item}
             onPress={() => handleMediaPress(item)}
+            isCarousel={true}
           />
-        )}
-      />
-    </View>
+        ))}
+      </ScrollView>
+
+      {/* Seção Filmes de Ação */}
+      <Text style={styles.title}>Filmes de Ação</Text>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContainer}
+        snapToInterval={215}
+        decelerationRate="fast"
+        snapToAlignment="start"
+      >
+        {actionMovies.map((item) => (
+          <FilmeCard
+            key={`action-${item.id.toString()}`}
+            media={item}
+            onPress={() => handleMediaPress(item)}
+            isCarousel={true}
+          />
+        ))}
+      </ScrollView>
+
+      {/* Seção Filmes de Terror */}
+      <Text style={styles.title}>Filmes de Terror</Text>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContainer}
+        snapToInterval={215}
+        decelerationRate="fast"
+        snapToAlignment="start"
+      >
+        {horrorMovies.map((item) => (
+          <FilmeCard
+            key={`horror-${item.id.toString()}`}
+            media={item}
+            onPress={() => handleMediaPress(item)}
+            isCarousel={true}
+          />
+        ))}
+      </ScrollView>
+    </ScrollView>
   );
 };
 
-// <--- MUDANÇA: Estilos atualizados ---
 const getStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    paddingTop: 40,
-    backgroundColor: COLORS.background, // <--- MUDANÇA
+    backgroundColor: COLORS.background,
   },
   center: {
     justifyContent: 'center',
@@ -118,20 +188,26 @@ const getStyles = (COLORS) => StyleSheet.create({
   title: {
     fontSize: 24,
     marginBottom: 20,
+    marginTop: 20,
     fontWeight: 'bold',
-    color: COLORS.textPrimary, // <--- MUDANÇA
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    width: '100%',
   },
   errorText: {
     fontSize: 16,
-    color: COLORS.accent1, // <--- MUDANÇA
+    color: COLORS.accent1,
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-  // <--- MUDANÇA: Novo estilo para texto de loading ---
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: COLORS.textPrimary,
+  },
+  carouselContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   }
 });
 
