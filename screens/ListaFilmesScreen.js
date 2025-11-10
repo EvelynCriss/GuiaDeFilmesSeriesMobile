@@ -2,15 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import FilmeCard from '../components/FilmeCard'; // <--- MUDANÇA: Importa o novo Card
+import FilmeCard from '../components/FilmeCard'; 
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
+import { useTheme } from '../context/ThemeContext';
 
 const API_KEY = TMDB_API_KEY;
 
-// <--- MUDANÇA: Nome do componente
 const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
+  const { colors: COLORS } = useTheme();
 
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,9 +25,10 @@ const ListaFilmesScreen = () => {
         return;
       }
       try {
-        const response = await api.get('/trending/movie/day', {
+        // <--- MUDANÇA: Endpoint e parâmetros atualizados para TMDb
+        const response = await api.get('/movie/popular', {
           params: {
-            api_key: API_KEY,
+            api_key: API_KEY,          // <--- MUDANÇA: 'apikey' virou 'api_key'
             language: 'pt-BR',
           }
         });
@@ -48,16 +50,19 @@ const ListaFilmesScreen = () => {
     fetchMovies();
   }, []);
 
-  // <--- MUDANÇA: Nome da função e parâmetros de navegação
   const handleMediaPress = (media) => {
-    navigation.navigate('DetalhesFilme', { mediaItem: media }); // <--- Rota 'DetalhesFilme', parâmetro 'mediaItem'
+    navigation.navigate('DetalhesFilme', { mediaItem: media }); 
   };
+
+  const styles = getStyles(COLORS);
 
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Carregando filmes...</Text>
+        {/* <--- MUDANÇA: Cor do indicador --- */}
+        <ActivityIndicator size="large" color={COLORS.accent1} /> 
+        {/* <--- MUDANÇA: Estilo do texto --- */}
+        <Text style={styles.loadingText}>Carregando filmes...</Text> 
       </View>
     );
   }
@@ -72,13 +77,11 @@ const ListaFilmesScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Filmes em Alta</Text>
       <FlatList
         style={{ width: '100%' }}
         data={movies}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          // <--- MUDANÇA: Usa o FilmeCard e passa a prop 'media'
           <FilmeCard
             media={item}
             onPress={() => handleMediaPress(item)}
@@ -89,13 +92,13 @@ const ListaFilmesScreen = () => {
   );
 };
 
-// ... (estilos permanecem os mesmos)
-const styles = StyleSheet.create({
+// <--- MUDANÇA: Estilos atualizados ---
+const getStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     paddingTop: 40,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: COLORS.background, // <--- MUDANÇA
   },
   center: {
     justifyContent: 'center',
@@ -104,12 +107,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 20,
     fontWeight: 'bold',
+    color: COLORS.textPrimary, // <--- MUDANÇA
   },
   errorText: {
     fontSize: 16,
-    color: 'red',
+    color: COLORS.accent1, // <--- MUDANÇA
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  // <--- MUDANÇA: Novo estilo para texto de loading ---
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.textPrimary,
   }
 });
 
-// <--- MUDANÇA: Exporta o novo nome do componente
 export default ListaFilmesScreen;
