@@ -29,7 +29,7 @@ export const lightColors = {
   // Cores do Tema
   background: '#F4F4F4',      // Fundo principal claro
   textPrimary: '#1A1A1A',     // Texto principal escuro
-  infoBoxBg: '#FFFFFF',      // Fundo para caixas de info (branco)
+  infoBoxBg: '#e0e0e0ff',      // Fundo para caixas de info (branco)
 
   // Acentos (podem ser os mesmos ou diferentes)
   accent1: '#E5446D',

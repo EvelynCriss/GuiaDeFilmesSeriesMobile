@@ -1,6 +1,6 @@
 // components/FilmeCard.js
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
 import { useTheme } from '../context/ThemeContext'; // <--- MUDANÇA: Importa o hook
@@ -26,7 +26,12 @@ const FilmeCard = ({ media, onPress }) => {
   const styles = getStyles(COLORS);
 
   return (
-    <TouchableOpacity onPress={onPress} style={styles.touchable}>
+    <Pressable onPress={onPress} style={({ pressed }) => [
+        styles.touchable,
+        {
+          transform: [{ scale: pressed ? 0.98 : 1 }] 
+        }
+      ]}>
       <View style={styles.card}>
         <Image
           source={{ uri: media.poster_path ? `${POSTER_BASE_URL_W200}${media.poster_path}` : 'https://via.placeholder.com/100x150.png?text=No+Image' }}
@@ -36,11 +41,11 @@ const FilmeCard = ({ media, onPress }) => {
           <Text style={styles.titulo}>{media.title}</Text>
           <Text style={styles.descricao}>{year}</Text>
         </View>
-        <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteButton}>
+        <Pressable onPress={handleToggleFavorite} style={styles.favoriteButton}>
           <Ionicons name={favoriteIconName} size={24} color={favoriteIconColor} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
