@@ -1,4 +1,4 @@
-// screens/ListaPontosTuristicos.js
+// screens/ListaFilmesScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -26,7 +26,6 @@ const ListaFilmesScreen = () => {
         setLoading(false);
         return;
       }
-
       try {
         // Busca filmes populares
         const popularResponse = await api.get('/movie/popular', {
@@ -85,7 +84,6 @@ const ListaFilmesScreen = () => {
         setLoading(false);
       }
     };
-
     fetchMovies();
   }, []);
 

@@ -4,7 +4,7 @@ import React from 'react';
 import { View, TouchableOpacity, StatusBar } from 'react-native'; // <--- MUDANÇA: Importa StatusBar
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native'; // <--- MUDANÇA: Importa temas
-import { createStackNavigator } from '@react-navigation/stack'; 
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack'; 
 
 import { FavoritesProvider } from './context/FavoritesContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext'; // <--- MUDANÇA: Importa o Provedor e o Hook
@@ -49,6 +49,7 @@ function AppContent() {
           headerTitleStyle: {
             fontWeight: 'bold',
           },
+          cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
         }}
       >
         <Stack.Screen
