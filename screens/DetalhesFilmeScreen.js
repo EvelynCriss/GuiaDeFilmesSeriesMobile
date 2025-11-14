@@ -24,24 +24,22 @@ import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
 import { useTheme } from '../context/ThemeContext';
 
-// --- NOVOS IMPORTS DOS COMPONENTES ---
 import CollectionCardItem from '../components/CollectionCardItem';
 import ReviewModal from '../components/ReviewModal';
 import ReviewCardItem from '../components/ReviewCardItem';
+import GenrePill from '../components/GenrePill';
+import MovieRating from '../components/MovieRating';
 
-// --- Constantes Globais ---
 const API_KEY = TMDB_API_KEY;
 const POSTER_BASE_URL_W500 = 'https://image.tmdb.org/t/p/w500';
 const BACKDROP_BASE_URL_W780 = 'https://image.tmdb.org/t/p/w780';
 
-// --- Constantes do Carrossel de Reviews ---
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.7;
 const CARD_MARGIN = 0.5;
 const ITEM_SIZE = CARD_WIDTH + CARD_MARGIN * 2;
 const SPACER_WIDTH = (SCREEN_WIDTH - ITEM_SIZE) / 2;
 
-// --- Início do Componente ---
 const DetalhesFilmeScreen = () => {
   const { colors: COLORS } = useTheme();
   const route = useRoute();
@@ -60,9 +58,9 @@ const DetalhesFilmeScreen = () => {
   const [trailerKey, setTrailerKey] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
 
+  const pageAnimation = React.useRef(new Animated.Value(0)).current;
   const scrollX = React.useRef(new Animated.Value(0)).current;
 
-  // --- useEffect ---
   useEffect(() => {
     const fetchDetailsAndReviews = async () => {
       setLoading(true);
@@ -101,7 +99,6 @@ const DetalhesFilmeScreen = () => {
           if (details.videos && details.videos.results) {
             const videos = details.videos.results;
 
-            // Tenta achar o Trailer Oficial do YouTube
             const officialTrailer = videos.find(
               (v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official === true
             );
@@ -109,14 +106,12 @@ const DetalhesFilmeScreen = () => {
             if (officialTrailer) {
               setTrailerKey(officialTrailer.key);
             } else {
-              // Se não achar, pega o primeiro "Trailer" que for do YouTube
               const anyTrailer = videos.find(
                 (v) => v.site === 'YouTube' && v.type === 'Trailer'
               );
               if (anyTrailer) {
                 setTrailerKey(anyTrailer.key);
               } else {
-                // Se ainda não achar, pega o primeiro vídeo do YouTube (pode ser teaser, etc)
                 const anyVideo = videos.find((v) => v.site === 'YouTube');
                 if (anyVideo) {
                   setTrailerKey(anyVideo.key);
@@ -125,7 +120,6 @@ const DetalhesFilmeScreen = () => {
             }
           }
 
-          // Buscar Coleção/Franquia
           if (details.belongs_to_collection) {
             try {
               const collectionResponse = await api.get(`/collection/${details.belongs_to_collection.id}`, {
@@ -146,7 +140,6 @@ const DetalhesFilmeScreen = () => {
           throw new Error(detailsResponse.data.status_message || 'Filme não encontrado');
         }
 
-        // Lógica de combinação de reviews
         const ptReviews = detailsResponse.data.reviews?.results || [];
         const enReviews = englishReviewsResponse.data?.results || [];
 
@@ -166,28 +159,28 @@ const DetalhesFilmeScreen = () => {
         console.error(err);
       } finally {
         setLoading(false);
+
+        Animated.timing(pageAnimation, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }).start();
       }
     };
 
     fetchDetailsAndReviews();
-  }, [filmeBase?.id]);
+  }, [filmeBase?.id, pageAnimation]);
 
   useEffect(() => {
-    // Se o 'loading' da página terminou E nós temos uma 'trailerKey'
     if (!loading && trailerKey) {
-      
-      // Espere 500ms para dar tempo da UI principal renderizar
-      // e só então mostre o vídeo.
       const timer = setTimeout(() => {
         setShowVideo(true);
-      }, 500); // 500ms é um bom ponto de partida
+      }, 500); 
 
-      // Limpa o timer se o componente for desmontado
       return () => clearTimeout(timer);
     }
   }, [loading, trailerKey]);
 
-  // --- Funções ---
   const toggleReviewExpansion = (reviewId) => {
     setExpandedReviews((prev) => ({
       ...prev,
@@ -207,13 +200,10 @@ const DetalhesFilmeScreen = () => {
 
   const onShare = async () => {
     if (!movieDetails) return;
-
     const movieUrl = `https://www.themoviedb.org/movie/${movieDetails.id}`;
-    const message = `Confira este filme: ${movieDetails.title}\n\n${movieUrl}`;
-
     try {
       await Share.share({
-        message: message,
+        message: `Confira este filme: ${movieDetails.title}\n\n${movieUrl}`,
         title: `Recomendar: ${movieDetails.title}`,
         url: movieUrl,
       });
@@ -226,31 +216,20 @@ const DetalhesFilmeScreen = () => {
     if (!dateString) return 'N/A';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
-    } catch (e) {
-      return dateString;
-    }
+      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) { return dateString; }
   };
 
   const getStatusText = (status) => {
     const statusMap = {
-      'Released': 'Lançado',
-      'In Production': 'Em Produção',
-      'Post Production': 'Em Pós-Produção',
-      'Planned': 'Planejado',
-      'Rumored': 'Rumor',
-      'Canceled': 'Cancelado',
+      'Released': 'Lançado', 'In Production': 'Em Produção', 'Post Production': 'Em Pós-Produção',
+      'Planned': 'Planejado', 'Rumored': 'Rumor', 'Canceled': 'Cancelado',
     };
     return statusMap[status] || status || 'N/A';
   };
 
-  // --- Telas de Loading e Erro ---
   const styles = getStyles(COLORS);
-  
+
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -264,11 +243,7 @@ const DetalhesFilmeScreen = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <Text style={styles.errorText}>{error}</Text>
-        <Button
-          title="Tentar Novamente"
-          onPress={() => navigation.goBack()}
-          color={COLORS.accent1}
-        />
+        <Button title="Tentar Novamente" onPress={() => navigation.goBack()} color={COLORS.accent1} />
       </View>
     );
   }
@@ -277,42 +252,38 @@ const DetalhesFilmeScreen = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <Text style={styles.errorText}>Filme não encontrado.</Text>
-        <Button
-          title="Voltar"
-          onPress={() => navigation.goBack()}
-          color={COLORS.accent1}
-        />
+        <Button title="Voltar" onPress={() => navigation.goBack()} color={COLORS.accent1} />
       </View>
     );
   }
 
-  // --- Lógica de renderização ---
   const handleToggleFavorite = () => {
     toggleFavorite(movieDetails.id);
   };
 
-  // 👇 BLOCO CORRIGIDO - COM VERIFICAÇÃO DE NULL 👇
   const favoriteIconName = isFavorite(movieDetails?.id) ? 'heart' : 'heart-outline';
-  const favoriteIconColor = isFavorite(movieDetails?.id)
-    ? COLORS.accent1
-    : COLORS.textPrimary;
-
-  const director = movieDetails?.credits?.crew?.find(
-    (person) => person.job === 'Director'
-  );
-  const actors = movieDetails?.credits?.cast
-    ?.slice(0, 5)
-    ?.map((person) => person.name)
-    ?.join(', ') || 'N/A';
-  const year = movieDetails?.release_date
-    ? new Date(movieDetails.release_date).getFullYear()
-    : 'N/A';
+  const favoriteIconColor = isFavorite(movieDetails?.id) ? COLORS.accent1 : COLORS.textPrimary;
+  const director = movieDetails?.credits?.crew?.find((person) => person.job === 'Director');
+  const actors = movieDetails?.credits?.cast?.slice(0, 5)?.map((person) => person.name)?.join(', ') || 'N/A';
+  const year = movieDetails?.release_date ? new Date(movieDetails.release_date).getFullYear() : 'N/A';
   const runtime = movieDetails?.runtime ? `${movieDetails.runtime} min` : 'N/A';
-
   const releaseDateFormatted = formatReleaseDate(movieDetails?.release_date);
   const statusText = getStatusText(movieDetails?.status);
 
-  // --- JSX ---
+  const animatedPageOpacity = pageAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+  const animatedPageTranslateY = pageAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [30, 0], 
+  });
+
+  const generalAnimatedStyle = {
+    opacity: animatedPageOpacity,
+    transform: [{ translateY: animatedPageTranslateY }],
+  };
+
   return (
     <>
       <ScrollView style={styles.scrollViewContainer}>
@@ -328,92 +299,61 @@ const DetalhesFilmeScreen = () => {
         </ImageBackground>
 
         <View style={styles.detailsContainer}>
-          <Image
+          <Animated.Image
             source={{
               uri: movieDetails?.poster_path
                 ? `${POSTER_BASE_URL_W500}${movieDetails.poster_path}`
                 : 'https://via.placeholder.com/300x450.png?text=No+Image',
             }}
-            style={styles.poster}
+            style={[styles.poster, generalAnimatedStyle]}
           />
 
-          <View style={styles.headerBelowPoster}>
+          <Animated.View style={[styles.headerBelowPoster, generalAnimatedStyle]}>
             <TouchableOpacity onPress={onShare} style={styles.actionButton}>
               <Ionicons name="share-social-outline" size={28} color={COLORS.textPrimary} />
             </TouchableOpacity>
-
             <Text style={styles.titleBelowPoster}>{movieDetails?.title || 'Carregando...'}</Text>
-
-            <TouchableOpacity
-              onPress={handleToggleFavorite}
-              style={styles.actionButton}
-            >
-              <Ionicons
-                name={favoriteIconName}
-                size={30}
-                color={favoriteIconColor}
-              />
+            <TouchableOpacity onPress={handleToggleFavorite} style={styles.actionButton}>
+              <Ionicons name={favoriteIconName} size={30} color={favoriteIconColor} />
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
           <View style={styles.metaAndRatingWrapper}>
-            {/* O texto normal do ano e duração */}
-            <Text style={styles.metaInfoText}>
+            <Animated.Text style={[styles.metaInfoText, generalAnimatedStyle]}>
               {year} · {runtime}
-            </Text>
+            </Animated.Text>
             
-            {/* O "Pill" da avaliação (com fundo e tamanho grande) */}
-            {movieDetails?.vote_average > 0 && (
-              <View style={styles.ratingContainer}>
-                <Ionicons name="flame" size={20} color={COLORS.accent1} />
-                <Text style={styles.ratingText}>
-                  {movieDetails.vote_average.toFixed(1)}
-                  <Text style={styles.ratingTextSecondary}> / 10</Text>
-                </Text>
-              </View>
-            )}
+            <MovieRating
+              rating={movieDetails?.vote_average}
+              style={generalAnimatedStyle}
+            />
           </View>
 
-          <View style={styles.genreContainer}>
+          <Animated.View style={[styles.genreContainer, generalAnimatedStyle]}>
             {movieDetails?.genres?.map((genre) => (
-              <View key={genre.id} style={styles.genrePill}>
-                <Text style={styles.genrePillText}>{genre.name}</Text>
-              </View>
+              <GenrePill key={genre.id} name={genre.name} />
             ))}
-          </View>
+          </Animated.View>
 
           {trailerKey && (
             <>
-              <Text style={styles.sectionTitle}>Trailer</Text>
-              <View style={styles.trailerContainer}>
-                {/* Verifica se 'showVideo' é true. 
-                  Se for, mostra o player.
-                  Se não for, mostra um placeholder com loading.
-                */}
+              <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Trailer</Animated.Text>
+              <Animated.View style={[styles.trailerContainer, generalAnimatedStyle]}>
                 {showVideo ? (
-                  <YoutubePlayer
-                    height={220}
-                    play={false}
-                    videoId={trailerKey}
-                    webViewStyle={{ opacity: 0.99 }}
-                  />
+                  <YoutubePlayer height={220} play={false} videoId={trailerKey} webViewStyle={{ opacity: 0.99 }} />
                 ) : (
-                  <View style={styles.videoPlaceholder}>
-                    <ActivityIndicator size="large" color={COLORS.accent1} />
-                  </View>
+                  <View style={styles.videoPlaceholder}><ActivityIndicator size="large" color={COLORS.accent1} /></View>
                 )}
-              </View>
+              </Animated.View>
             </>
           )}
 
-          <Text style={styles.sectionTitle}>Enredo</Text>
-          <View style={styles.descriptionBox}>
-            <Text style={styles.descriptionText}>
-              {movieDetails?.overview || 'Sinopse não disponível.'}
-            </Text>
-          </View>
+          <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Enredo</Animated.Text>
+          <Animated.View style={[styles.descriptionBox, generalAnimatedStyle]}>
+            <Text style={styles.descriptionText}>{movieDetails?.overview || 'Sinopse não disponível.'}</Text>
+          </Animated.View>
 
-          <View style={styles.infoBlockContainer}>
+          <Animated.View style={[styles.infoBlockContainer, generalAnimatedStyle]}>
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Lançamento</Text>
@@ -424,29 +364,24 @@ const DetalhesFilmeScreen = () => {
                 <Text style={styles.infoValue}>{statusText}</Text>
               </View>
             </View>
-
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Diretor</Text>
-                <Text style={styles.infoValue} numberOfLines={1}>
-                  {director ? director.name : 'N/A'}
-                </Text>
+                <Text style={styles.infoValue} numberOfLines={1}>{director ? director.name : 'N/A'}</Text>
               </View>
             </View>
             <View style={styles.infoItemFull}>
               <Text style={styles.infoLabel}>Elenco Principal</Text>
               <Text style={styles.infoValue}>{actors || 'N/A'}</Text>
             </View>
-          </View>
+          </Animated.View>
 
           {collectionMovies.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>
-                {movieDetails?.belongs_to_collection?.name
-                  ? `Filmes relacionados`
-                  : 'Mais da Coleção'
-                }
-              </Text>
+              <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>
+                {movieDetails?.belongs_to_collection?.name ? `Filmes relacionados` : 'Mais da Coleção'}
+              </Animated.Text>
+              
               <FlatList
                 data={collectionMovies}
                 renderItem={({ item }) => (
@@ -465,8 +400,8 @@ const DetalhesFilmeScreen = () => {
 
           {reviews.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Reviews</Text>
-
+              <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Reviews</Animated.Text>
+              
               <Animated.FlatList
                 data={reviews}
                 renderItem={({ item, index }) => (
@@ -507,7 +442,6 @@ const DetalhesFilmeScreen = () => {
   );
 };
 
-// --- StyleSheet ---
 const getStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
@@ -592,41 +526,19 @@ const getStyles = (COLORS) => StyleSheet.create({
     elevation: 10,
   },
   metaAndRatingWrapper: {
-    flexDirection: 'row',       // Alinha os itens lado a lado
-    justifyContent: 'center',  // Centraliza o grupo na tela
-    alignItems: 'center',      // Alinha o texto e o pill verticalmente
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 10,
     marginBottom: 5,
     paddingHorizontal: 20,
-    flexWrap: 'wrap',          // Permite quebrar se não couber
+    flexWrap: 'wrap',
   },
   metaInfoText: {
-    fontSize: 16,              // Tamanho normal para o texto
+    fontSize: 16,
     color: COLORS.textPrimary,
     opacity: 0.7,
-    marginRight: 15,           // <-- Adiciona espaço entre o texto e o pill
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.infoBoxBg, // <-- O fundo que você queria
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    // Removemos 'marginTop' e 'alignSelf' daqui, pois o wrapper controla
-  },
-  ratingText: {
-    fontSize: 18,             // <-- O tamanho grande que você queria
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    marginLeft: 8,
-  },
-  ratingTextSecondary: {
-    fontSize: 14,
-    fontWeight: 'normal',
-    color: COLORS.textPrimary,
-    opacity: 0.7,
+    marginRight: 15,
   },
   genreContainer: {
     flexDirection: 'row',
@@ -634,18 +546,6 @@ const getStyles = (COLORS) => StyleSheet.create({
     justifyContent: 'center',
     marginTop: 10,
     paddingHorizontal: 20,
-  },
-  genrePill: {
-    backgroundColor: COLORS.accent2,
-    borderRadius: 15,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    margin: 4,
-  },
-  genrePillText: {
-    color: COLORS.textPrimary,
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   sectionTitle: {
     fontSize: 22,
@@ -661,15 +561,14 @@ const getStyles = (COLORS) => StyleSheet.create({
     width: '90%',
     alignSelf: 'center',
     borderRadius: 10,
-    overflow: 'hidden', // Importante para o player não "vazar" as bordas
+    overflow: 'hidden',
     marginTop: 10,
-    backgroundColor: COLORS.infoBoxBg, // Cor de fundo enquanto o player carrega
+    backgroundColor: COLORS.infoBoxBg,
   },
   videoPlaceholder: {
-    height: 220, // Mesma altura do player
+    height: 220,
     justifyContent: 'center',
     alignItems: 'center',
-    // O 'backgroundColor' já vem do trailerContainer
   },
   descriptionBox: {
     backgroundColor: COLORS.infoBoxBg,
