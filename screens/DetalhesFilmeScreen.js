@@ -12,7 +12,7 @@ import {
   ImageBackground,
   Dimensions,
   Animated,
-  FlatList, // <--- FlatList normal está importada
+  FlatList,
   Share,
   Alert,
 } from 'react-native';
@@ -24,24 +24,22 @@ import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
 import { useTheme } from '../context/ThemeContext';
 
-// --- NOVOS IMPORTS DOS COMPONENTES ---
 import CollectionCardItem from '../components/CollectionCardItem';
 import ReviewModal from '../components/ReviewModal';
 import ReviewCardItem from '../components/ReviewCardItem';
+import GenrePill from '../components/GenrePill';
+import MovieRating from '../components/MovieRating';
 
-// --- Constantes Globais ---
 const API_KEY = TMDB_API_KEY;
 const POSTER_BASE_URL_W500 = 'https://image.tmdb.org/t/p/w500';
 const BACKDROP_BASE_URL_W780 = 'https://image.tmdb.org/t/p/w780';
 
-// --- Constantes do Carrossel de Reviews ---
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.7;
 const CARD_MARGIN = 0.5;
 const ITEM_SIZE = CARD_WIDTH + CARD_MARGIN * 2;
 const SPACER_WIDTH = (SCREEN_WIDTH - ITEM_SIZE) / 2;
 
-// --- Início do Componente ---
 const DetalhesFilmeScreen = () => {
   const { colors: COLORS } = useTheme();
   const route = useRoute();
@@ -63,7 +61,6 @@ const DetalhesFilmeScreen = () => {
   const pageAnimation = React.useRef(new Animated.Value(0)).current;
   const scrollX = React.useRef(new Animated.Value(0)).current;
 
-  // --- useEffect ---
   useEffect(() => {
     const fetchDetailsAndReviews = async () => {
       setLoading(true);
@@ -184,8 +181,6 @@ const DetalhesFilmeScreen = () => {
     }
   }, [loading, trailerKey]);
 
-  // --- Funções ---
-  // ... (todas as suas funções como openReviewModal, onShare, etc. permanecem iguais)
   const toggleReviewExpansion = (reviewId) => {
     setExpandedReviews((prev) => ({
       ...prev,
@@ -232,10 +227,7 @@ const DetalhesFilmeScreen = () => {
     };
     return statusMap[status] || status || 'N/A';
   };
-  // --- Fim das Funções ---
 
-
-  // --- Telas de Loading e Erro ---
   const styles = getStyles(COLORS);
 
   if (loading) {
@@ -265,7 +257,6 @@ const DetalhesFilmeScreen = () => {
     );
   }
 
-  // --- Lógica de renderização ---
   const handleToggleFavorite = () => {
     toggleFavorite(movieDetails.id);
   };
@@ -279,7 +270,6 @@ const DetalhesFilmeScreen = () => {
   const releaseDateFormatted = formatReleaseDate(movieDetails?.release_date);
   const statusText = getStatusText(movieDetails?.status);
 
-  // --- ANIMAÇÕES GERAIS DA PÁGINA ---
   const animatedPageOpacity = pageAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
@@ -289,26 +279,11 @@ const DetalhesFilmeScreen = () => {
     outputRange: [30, 0], 
   });
 
-  // Estilo para conteúdo vertical (slide + fade)
   const generalAnimatedStyle = {
     opacity: animatedPageOpacity,
     transform: [{ translateY: animatedPageTranslateY }],
   };
 
-  // --- MUDANÇA: 'carouselAnimatedStyle' REMOVIDO ---
-
-  // --- LÓGICA DE COR MANTIDA ---
-  const getRatingColor = (rating) => {
-    if (rating >= 7.5) return COLORS.accent1;
-    if (rating >= 5) return '#e5446c94';
-    return '#e5446c3d';
-  };
-  
-  const ratingColor = movieDetails?.vote_average
-    ? getRatingColor(movieDetails.average)
-    : COLORS.infoBoxBg;
-
-  // --- JSX ---
   return (
     <>
       <ScrollView style={styles.scrollViewContainer}>
@@ -324,7 +299,6 @@ const DetalhesFilmeScreen = () => {
         </ImageBackground>
 
         <View style={styles.detailsContainer}>
-          {/* --- Todos estes usam 'generalAnimatedStyle' (com slide) --- */}
           <Animated.Image
             source={{
               uri: movieDetails?.poster_path
@@ -348,26 +322,16 @@ const DetalhesFilmeScreen = () => {
             <Animated.Text style={[styles.metaInfoText, generalAnimatedStyle]}>
               {year} · {runtime}
             </Animated.Text>
-            {movieDetails?.vote_average > 0 && (
-              <Animated.View style={[
-                styles.ratingContainer,
-                generalAnimatedStyle, 
-                { backgroundColor: ratingColor } 
-              ]}>
-                <Ionicons name="flame" size={20} color={COLORS.textPrimary} />
-                <Text style={styles.ratingText}>
-                  {movieDetails.vote_average.toFixed(1)}
-                  <Text style={styles.ratingTextSecondary}> / 10</Text>
-                </Text>
-              </Animated.View>
-            )}
+            
+            <MovieRating
+              rating={movieDetails?.vote_average}
+              style={generalAnimatedStyle}
+            />
           </View>
 
           <Animated.View style={[styles.genreContainer, generalAnimatedStyle]}>
             {movieDetails?.genres?.map((genre) => (
-              <View key={genre.id} style={styles.genrePill}>
-                <Text style={styles.genrePillText}>{genre.name}</Text>
-              </View>
+              <GenrePill key={genre.id} name={genre.name} />
             ))}
           </Animated.View>
 
@@ -412,14 +376,12 @@ const DetalhesFilmeScreen = () => {
             </View>
           </Animated.View>
 
-          {/* --- CORREÇÃO (PASSO 1): Wrapper da Coleção REMOVIDO --- */}
           {collectionMovies.length > 0 && (
             <>
               <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>
                 {movieDetails?.belongs_to_collection?.name ? `Filmes relacionados` : 'Mais da Coleção'}
               </Animated.Text>
               
-              {/* O 'Animated.View' foi removido daqui */}
               <FlatList
                 data={collectionMovies}
                 renderItem={({ item }) => (
@@ -436,12 +398,10 @@ const DetalhesFilmeScreen = () => {
             </>
           )}
 
-          {/* --- CORREÇÃO (PASSO 2): Wrapper das Reviews REMOVIDO --- */}
           {reviews.length > 0 && (
             <>
               <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Reviews</Animated.Text>
               
-              {/* O 'Animated.View' foi removido daqui */}
               <Animated.FlatList
                 data={reviews}
                 renderItem={({ item, index }) => (
@@ -482,8 +442,6 @@ const DetalhesFilmeScreen = () => {
   );
 };
 
-// --- StyleSheet ---
-// (Nenhuma mudança necessária no StyleSheet)
 const getStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
@@ -582,45 +540,12 @@ const getStyles = (COLORS) => StyleSheet.create({
     opacity: 0.7,
     marginRight: 15,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.infoBoxBg,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-  },
-  ratingText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    marginLeft: 8,
-  },
-  ratingTextSecondary: {
-    fontSize: 14,
-    fontWeight: 'normal',
-    color: COLORS.textPrimary,
-    opacity: 0.7,
-  },
   genreContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     marginTop: 10,
     paddingHorizontal: 20,
-  },
-  genrePill: {
-    backgroundColor: COLORS.accent2,
-    borderRadius: 15,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    margin: 4,
-  },
-  genrePillText: {
-    color: COLORS.textPrimary,
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   sectionTitle: {
     fontSize: 22,

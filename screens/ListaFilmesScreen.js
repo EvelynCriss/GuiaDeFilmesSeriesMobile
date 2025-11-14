@@ -1,4 +1,4 @@
-// screens/ListaPontosTuristicos.js
+// screens/ListaFilmesScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -7,7 +7,6 @@ import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
 import { useTheme } from '../context/ThemeContext';
 
-// <--- MUDANÇA: Chave vindo do .env
 const API_KEY = TMDB_API_KEY;
 
 const ListaFilmesScreen = () => { 
@@ -27,28 +26,21 @@ const ListaFilmesScreen = () => {
       }
 
       try {
-        // <--- MUDANÇA: Endpoint e parâmetros atualizados para TMDb
         const response = await api.get('/movie/popular', {
           params: {
-            api_key: API_KEY,          // <--- MUDANÇA: 'apikey' virou 'api_key'
+            api_key: API_KEY,
             language: 'pt-BR',
           }
         });
 
-        // <--- MUDANÇA: 'Search' virou 'results'
         if (response.data.results) {
-
-          // <--- MUDANÇA AQUI: Filtra os duplicados ---
-          // Usamos um Map para garantir que cada 'id' (antes 'imdbID') apareça apenas uma vez.
           const uniqueMovies = Array.from(
-            new Map(response.data.results.map(movie => [movie.id, movie])).values() // <--- MUDANÇA: 'imdbID' virou 'id'
+            new Map(response.data.results.map(movie => [movie.id, movie])).values()
           );
-          // --- Fim da mudança ---
 
           setMovies(uniqueMovies);
 
         } else {
-          // <--- MUDANÇA: 'Error' virou 'status_message' (padrão do TMDb)
           setError(response.data.status_message || 'Nenhum filme encontrado');
         }
       } catch (err) {
@@ -71,9 +63,7 @@ const ListaFilmesScreen = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        {/* <--- MUDANÇA: Cor do indicador --- */}
         <ActivityIndicator size="large" color={COLORS.accent1} /> 
-        {/* <--- MUDANÇA: Estilo do texto --- */}
         <Text style={styles.loadingText}>Carregando filmes...</Text> 
       </View>
     );
@@ -92,7 +82,7 @@ const ListaFilmesScreen = () => {
       <FlatList
         style={{ width: '100%' }}
         data={movies}
-        keyExtractor={(item) => item.id.toString()} // <--- MUDANÇA: 'imdbID' virou 'id' (e convertemos para string)
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <FilmeCard
             media={item}
@@ -104,13 +94,12 @@ const ListaFilmesScreen = () => {
   );
 };
 
-// <--- MUDANÇA: Estilos atualizados ---
 const getStyles = (COLORS) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     paddingTop: 40,
-    backgroundColor: COLORS.background, // <--- MUDANÇA
+    backgroundColor: COLORS.background,
   },
   center: {
     justifyContent: 'center',
@@ -119,15 +108,14 @@ const getStyles = (COLORS) => StyleSheet.create({
     fontSize: 24,
     marginBottom: 20,
     fontWeight: 'bold',
-    color: COLORS.textPrimary, // <--- MUDANÇA
+    color: COLORS.textPrimary,
   },
   errorText: {
     fontSize: 16,
-    color: COLORS.accent1, // <--- MUDANÇA
+    color: COLORS.accent1,
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-  // <--- MUDANÇA: Novo estilo para texto de loading ---
   loadingText: {
     marginTop: 10,
     fontSize: 16,
