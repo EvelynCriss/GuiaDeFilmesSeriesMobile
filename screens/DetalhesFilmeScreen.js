@@ -7,7 +7,6 @@ import {
   Button,
   ScrollView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   ImageBackground,
   Dimensions,
@@ -47,6 +46,8 @@ const DetalhesFilmeScreen = () => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { mediaItem: filmeBase } = route.params;
 
+  const isTV = filmeBase?.media_type === 'tv' || !!filmeBase?.name;
+
   const [movieDetails, setMovieDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,7 +55,10 @@ const DetalhesFilmeScreen = () => {
   const [reviews, setReviews] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
-  const [collectionMovies, setCollectionMovies] = useState([]);
+  
+  const [bottomListData, setBottomListData] = useState([]);
+  const [bottomListTitle, setBottomListTitle] = useState('');
+  
   const [trailerKey, setTrailerKey] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
 
@@ -66,25 +70,32 @@ const DetalhesFilmeScreen = () => {
       setLoading(true);
       setMovieDetails(null);
       setReviews([]);
-      setCollectionMovies([]);
+      setBottomListData([]);
+      setBottomListTitle('');
       setError(null);
+      setTrailerKey(null);
+      setShowVideo(false);
 
       if (!API_KEY || !filmeBase?.id) {
-        setError('Chave de API ou ID do filme não encontrado.');
+        setError('Chave de API ou ID da mídia não encontrado.');
         setLoading(false);
         return;
       }
 
+      const endpointBase = isTV ? `/tv/${filmeBase.id}` : `/movie/${filmeBase.id}`;
+
       try {
         const [detailsResponse, englishReviewsResponse] = await Promise.all([
-          api.get(`/movie/${filmeBase.id}`, {
+          api.get(endpointBase, {
             params: {
               api_key: API_KEY,
               language: 'pt-BR',
-              append_to_response: 'credits,reviews,videos',
+              append_to_response: isTV 
+                ? 'aggregate_credits,reviews,videos' 
+                : 'credits,reviews,videos',
             },
           }),
-          api.get(`/movie/${filmeBase.id}/reviews`, {
+          api.get(`${endpointBase}/reviews`, {
             params: {
               api_key: API_KEY,
               language: 'en-US',
@@ -94,11 +105,10 @@ const DetalhesFilmeScreen = () => {
 
         if (detailsResponse.data) {
           const details = detailsResponse.data;
-          setMovieDetails(details);
+          setMovieDetails({ ...details, media_type: isTV ? 'tv' : 'movie' });
 
           if (details.videos && details.videos.results) {
             const videos = details.videos.results;
-
             const officialTrailer = videos.find(
               (v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official === true
             );
@@ -109,35 +119,49 @@ const DetalhesFilmeScreen = () => {
               const anyTrailer = videos.find(
                 (v) => v.site === 'YouTube' && v.type === 'Trailer'
               );
-              if (anyTrailer) {
-                setTrailerKey(anyTrailer.key);
-              } else {
-                const anyVideo = videos.find((v) => v.site === 'YouTube');
-                if (anyVideo) {
-                  setTrailerKey(anyVideo.key);
-                }
-              }
+              setTrailerKey(anyTrailer ? anyTrailer.key : videos.find(v => v.site === 'YouTube')?.key);
             }
           }
 
-          if (details.belongs_to_collection) {
-            try {
-              const collectionResponse = await api.get(`/collection/${details.belongs_to_collection.id}`, {
-                params: {
-                  api_key: API_KEY,
-                  language: 'pt-BR',
-                },
+          // --- LÓGICA PARA LISTA INFERIOR ---
+          if (isTV) {
+            if (details.seasons && details.seasons.length > 0) {
+              const filteredSeasons = details.seasons.filter(season => {
+                const isCurrentSeason = filmeBase.season_number !== undefined && season.season_number === filmeBase.season_number;
+                const isSameId = season.id === details.id; 
+                // Filtrar também a temporada 0 (Especiais) se desejar, mas geralmente é útil
+                return !isCurrentSeason && !isSameId;
               });
-              if (collectionResponse.data && collectionResponse.data.parts) {
-                const otherMovies = collectionResponse.data.parts.filter(part => part && part.id !== details.id);
-                setCollectionMovies(otherMovies);
+
+              if (filteredSeasons.length > 0) {
+                setBottomListData(filteredSeasons);
+                setBottomListTitle('Outras Temporadas');
               }
-            } catch (collectionErr) {
-              console.error("Erro ao buscar coleção:", collectionErr);
+            }
+          } else {
+            if (details.belongs_to_collection) {
+              try {
+                const collectionResponse = await api.get(`/collection/${details.belongs_to_collection.id}`, {
+                  params: { api_key: API_KEY, language: 'pt-BR' },
+                });
+                if (collectionResponse.data && collectionResponse.data.parts) {
+                  const otherMovies = collectionResponse.data.parts.filter(
+                    part => part && part.id !== details.id
+                  );
+                  const formattedParts = otherMovies.map(m => ({ ...m, media_type: 'movie' }));
+                  
+                  if (formattedParts.length > 0) {
+                    setBottomListData(formattedParts);
+                    setBottomListTitle('Da mesma coleção');
+                  }
+                }
+              } catch (collectionErr) {
+                console.log("Erro ao buscar coleção:", collectionErr);
+              }
             }
           }
         } else {
-          throw new Error(detailsResponse.data.status_message || 'Filme não encontrado');
+          throw new Error(detailsResponse.data.status_message || 'Mídia não encontrada');
         }
 
         const ptReviews = detailsResponse.data.reviews?.results || [];
@@ -155,11 +179,10 @@ const DetalhesFilmeScreen = () => {
         setReviews(combinedReviews);
 
       } catch (err) {
-        setError('Erro ao buscar detalhes do filme.');
+        setError('Erro ao buscar detalhes.');
         console.error(err);
       } finally {
         setLoading(false);
-
         Animated.timing(pageAnimation, {
           toValue: 1,
           duration: 600,
@@ -169,24 +192,16 @@ const DetalhesFilmeScreen = () => {
     };
 
     fetchDetailsAndReviews();
-  }, [filmeBase?.id, pageAnimation]);
+  }, [filmeBase?.id, pageAnimation, isTV]);
 
   useEffect(() => {
     if (!loading && trailerKey) {
       const timer = setTimeout(() => {
         setShowVideo(true);
-      }, 500); 
-
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [loading, trailerKey]);
-
-  const toggleReviewExpansion = (reviewId) => {
-    setExpandedReviews((prev) => ({
-      ...prev,
-      [reviewId]: !prev[reviewId],
-    }));
-  };
 
   const openReviewModal = (review) => {
     setSelectedReview(review);
@@ -200,11 +215,13 @@ const DetalhesFilmeScreen = () => {
 
   const onShare = async () => {
     if (!movieDetails) return;
-    const movieUrl = `https://www.themoviedb.org/movie/${movieDetails.id}`;
+    const typePath = isTV ? 'tv' : 'movie';
+    const movieUrl = `https://www.themoviedb.org/${typePath}/${movieDetails.id}`;
+    const titleToShare = movieDetails.title || movieDetails.name;
     try {
       await Share.share({
-        message: `Confira este filme: ${movieDetails.title}\n\n${movieUrl}`,
-        title: `Recomendar: ${movieDetails.title}`,
+        message: `Confira: ${titleToShare}\n\n${movieUrl}`,
+        title: `Recomendar: ${titleToShare}`,
         url: movieUrl,
       });
     } catch (error) {
@@ -224,6 +241,7 @@ const DetalhesFilmeScreen = () => {
     const statusMap = {
       'Released': 'Lançado', 'In Production': 'Em Produção', 'Post Production': 'Em Pós-Produção',
       'Planned': 'Planejado', 'Rumored': 'Rumor', 'Canceled': 'Cancelado',
+      'Returning Series': 'Renovada', 'Ended': 'Finalizada', 'Pilot': 'Piloto'
     };
     return statusMap[status] || status || 'N/A';
   };
@@ -234,7 +252,7 @@ const DetalhesFilmeScreen = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color={COLORS.accent1} />
-        <Text style={styles.loadingText}>Carregando detalhes do filme...</Text>
+        <Text style={styles.loadingText}>Carregando detalhes...</Text>
       </View>
     );
   }
@@ -243,7 +261,7 @@ const DetalhesFilmeScreen = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <Text style={styles.errorText}>{error}</Text>
-        <Button title="Tentar Novamente" onPress={() => navigation.goBack()} color={COLORS.accent1} />
+        <Button title="Voltar" onPress={() => navigation.goBack()} color={COLORS.accent1} />
       </View>
     );
   }
@@ -251,7 +269,7 @@ const DetalhesFilmeScreen = () => {
   if (!movieDetails) {
     return (
       <View style={[styles.container, styles.center]}>
-        <Text style={styles.errorText}>Filme não encontrado.</Text>
+        <Text style={styles.errorText}>Conteúdo não encontrado.</Text>
         <Button title="Voltar" onPress={() => navigation.goBack()} color={COLORS.accent1} />
       </View>
     );
@@ -263,12 +281,35 @@ const DetalhesFilmeScreen = () => {
 
   const favoriteIconName = isFavorite(movieDetails?.id) ? 'heart' : 'heart-outline';
   const favoriteIconColor = isFavorite(movieDetails?.id) ? COLORS.accent1 : COLORS.textPrimary;
-  const director = movieDetails?.credits?.crew?.find((person) => person.job === 'Director');
-  const actors = movieDetails?.credits?.cast?.slice(0, 5)?.map((person) => person.name)?.join(', ') || 'N/A';
-  const year = movieDetails?.release_date ? new Date(movieDetails.release_date).getFullYear() : 'N/A';
-  const runtime = movieDetails?.runtime ? `${movieDetails.runtime} min` : 'N/A';
-  const releaseDateFormatted = formatReleaseDate(movieDetails?.release_date);
-  const statusText = getStatusText(movieDetails?.status);
+
+  const title = movieDetails.title || movieDetails.name;
+  const dateToFormat = movieDetails.release_date || movieDetails.first_air_date;
+  const releaseDateFormatted = formatReleaseDate(dateToFormat);
+  const year = dateToFormat ? new Date(dateToFormat).getFullYear() : 'N/A';
+
+  let duration = 'N/A';
+  if (isTV) {
+    if (movieDetails.episode_run_time && movieDetails.episode_run_time.length > 0) {
+      duration = `${movieDetails.episode_run_time[0]} min/ep`;
+    } else if (movieDetails.number_of_seasons) {
+      duration = `${movieDetails.number_of_seasons} Temp.`;
+    }
+  } else {
+    duration = movieDetails.runtime ? `${movieDetails.runtime} min` : 'N/A';
+  }
+
+  let directorLabel = isTV ? 'Criador(es)' : 'Diretor';
+  let directorOrCreator = 'N/A';
+  if (isTV && movieDetails.created_by && movieDetails.created_by.length > 0) {
+    directorOrCreator = movieDetails.created_by.map(c => c.name).join(', ');
+  } else if (!isTV) {
+    const director = movieDetails.credits?.crew?.find((person) => person.job === 'Director');
+    if (director) directorOrCreator = director.name;
+  }
+
+  const castSource = isTV ? movieDetails.aggregate_credits : movieDetails.credits;
+  const actors = castSource?.cast?.slice(0, 5)?.map((person) => person.name)?.join(', ') || 'N/A';
+  const statusText = getStatusText(movieDetails.status);
 
   const animatedPageOpacity = pageAnimation.interpolate({
     inputRange: [0, 1],
@@ -276,7 +317,7 @@ const DetalhesFilmeScreen = () => {
   });
   const animatedPageTranslateY = pageAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [30, 0], 
+    outputRange: [30, 0],
   });
 
   const generalAnimatedStyle = {
@@ -291,7 +332,7 @@ const DetalhesFilmeScreen = () => {
           source={{
             uri: movieDetails?.backdrop_path
               ? `${BACKDROP_BASE_URL_W780}${movieDetails.backdrop_path}`
-              : 'https://via.placeholder.com/400x225.png?text=No+Backdrop',
+              : 'https://via.placeholder.com/800x450.png?text=Sem+Imagem',
           }}
           style={styles.backdrop}
         >
@@ -303,7 +344,7 @@ const DetalhesFilmeScreen = () => {
             source={{
               uri: movieDetails?.poster_path
                 ? `${POSTER_BASE_URL_W500}${movieDetails.poster_path}`
-                : 'https://via.placeholder.com/300x450.png?text=No+Image',
+                : 'https://via.placeholder.com/300x450.png?text=Sem+Poster',
             }}
             style={[styles.poster, generalAnimatedStyle]}
           />
@@ -312,7 +353,9 @@ const DetalhesFilmeScreen = () => {
             <TouchableOpacity onPress={onShare} style={styles.actionButton}>
               <Ionicons name="share-social-outline" size={28} color={COLORS.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.titleBelowPoster}>{movieDetails?.title || 'Carregando...'}</Text>
+            
+            <Text style={styles.titleBelowPoster}>{title}</Text>
+            
             <TouchableOpacity onPress={handleToggleFavorite} style={styles.actionButton}>
               <Ionicons name={favoriteIconName} size={30} color={favoriteIconColor} />
             </TouchableOpacity>
@@ -320,7 +363,7 @@ const DetalhesFilmeScreen = () => {
 
           <View style={styles.metaAndRatingWrapper}>
             <Animated.Text style={[styles.metaInfoText, generalAnimatedStyle]}>
-              {year} · {runtime}
+              {year} · {duration}
             </Animated.Text>
             
             <MovieRating
@@ -348,9 +391,11 @@ const DetalhesFilmeScreen = () => {
             </>
           )}
 
-          <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Enredo</Animated.Text>
+          <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Sinopse</Animated.Text>
           <Animated.View style={[styles.descriptionBox, generalAnimatedStyle]}>
-            <Text style={styles.descriptionText}>{movieDetails?.overview || 'Sinopse não disponível.'}</Text>
+            <Text style={styles.descriptionText}>
+              {movieDetails?.overview || 'Descrição não disponível para este título.'}
+            </Text>
           </Animated.View>
 
           <Animated.View style={[styles.infoBlockContainer, generalAnimatedStyle]}>
@@ -366,31 +411,43 @@ const DetalhesFilmeScreen = () => {
             </View>
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Diretor</Text>
-                <Text style={styles.infoValue} numberOfLines={1}>{director ? director.name : 'N/A'}</Text>
+                <Text style={styles.infoLabel}>{directorLabel}</Text>
+                <Text style={styles.infoValue} numberOfLines={2}>{directorOrCreator}</Text>
               </View>
             </View>
             <View style={styles.infoItemFull}>
               <Text style={styles.infoLabel}>Elenco Principal</Text>
-              <Text style={styles.infoValue}>{actors || 'N/A'}</Text>
+              <Text style={styles.infoValue}>{actors}</Text>
             </View>
           </Animated.View>
 
-          {collectionMovies.length > 0 && (
+          {bottomListData.length > 0 && (
             <>
               <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>
-                {movieDetails?.belongs_to_collection?.name ? `Filmes relacionados` : 'Mais da Coleção'}
+                {bottomListTitle}
               </Animated.Text>
               
               <FlatList
-                data={collectionMovies}
+                data={bottomListData}
                 renderItem={({ item }) => (
                   <CollectionCardItem
                     item={item}
-                    onPress={() => navigation.push('DetalhesFilme', { mediaItem: item })}
+                    onPress={() => {
+                        if (isTV) {
+                          // Navegar para DetalhesTemporada
+                          navigation.navigate('DetalhesTemporada', {
+                            seriesId: movieDetails.id,
+                            seasonNumber: item.season_number,
+                            seasonTitle: item.name,
+                          });
+                        } else {
+                           // Navegar para DetalhesFilme (da coleção)
+                           navigation.push('DetalhesFilme', { mediaItem: item });
+                        }
+                    }}
                   />
                 )}
-                keyExtractor={(item, index) => (item ? item.id.toString() : index.toString())}
+                keyExtractor={(item, index) => (item && item.id ? item.id.toString() : index.toString())}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.collectionCarouselContainer}
@@ -400,7 +457,7 @@ const DetalhesFilmeScreen = () => {
 
           {reviews.length > 0 && (
             <>
-              <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Reviews</Animated.Text>
+              <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Avaliações</Animated.Text>
               
               <Animated.FlatList
                 data={reviews}

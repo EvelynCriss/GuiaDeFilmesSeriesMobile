@@ -21,15 +21,12 @@ const genres = [
   { id: 18, name: "Drama", icon: "film-outline" },
 ];
 
-const CARD_WIDTH = 150; 
-const CARD_MARGIN = 15;
-const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN;
-
 const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
   const { colors: COLORS } = useTheme();
 
   const [popularMovies, setPopularMovies] = useState([]);
+  const [popularTV, setPopularTV] = useState([]); 
   const [featuredMovie, setFeaturedMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,22 +39,36 @@ const ListaFilmesScreen = () => {
     }
 
     try {
+      // 1. Busca Filmes
       const popularResponse = await api.get('/movie/popular', {
-        params: {
-          api_key: API_KEY,
-          language: 'pt-BR',
-        }
+        params: { api_key: API_KEY, language: 'pt-BR' }
+      });
+
+      // 2. Busca Séries
+      const tvResponse = await api.get('/tv/popular', {
+        params: { api_key: API_KEY, language: 'pt-BR' }
       });
 
       if (popularResponse.data.results) {
-        const uniquePopular = Array.from(
-          new Map(popularResponse.data.results.map(movie => [movie.id, movie])).values()
-        );
-        setPopularMovies(uniquePopular);
+        const movies = popularResponse.data.results.map(m => ({...m, media_type: 'movie'}));
+        setPopularMovies(movies);
         
-        if (uniquePopular.length > 0) {
-          setFeaturedMovie(uniquePopular[0]);
+        if (movies.length > 0) {
+          setFeaturedMovie(movies[0]);
         }
+      }
+
+      if (tvResponse.data.results) {
+        // --- CORREÇÃO DE DATA E TÍTULO ---
+        // A API de TV retorna 'name' e 'first_air_date'.
+        // Mapeamos para 'title' e 'release_date' para o FilmeCard entender e não mostrar N/A.
+        const shows = tvResponse.data.results.map(s => ({
+            ...s, 
+            media_type: 'tv',
+            title: s.name, // Usa o nome como título
+            release_date: s.first_air_date // Usa a data de estreia como data de lançamento
+        }));
+        setPopularTV(shows);
       }
 
     } catch (err) {
@@ -94,7 +105,7 @@ const ListaFilmesScreen = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color={COLORS.accent1} /> 
-        <Text style={styles.loadingText}>Carregando filmes...</Text> 
+        <Text style={styles.loadingText}>Carregando...</Text> 
       </View>
     );
   }
@@ -179,15 +190,32 @@ const ListaFilmesScreen = () => {
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.carouselContainer}
-        
         snapToInterval={165} 
-        
         decelerationRate="fast"
         snapToAlignment="start"
       >
         {popularMovies.map((item) => (
           <FilmeCard
-            key={`popular-${item.id.toString()}`}
+            key={`movie-${item.id}`}
+            media={item}
+            onPress={() => handleMediaPress(item)}
+            isCarousel={true}
+          />
+        ))}
+      </ScrollView>
+
+      <Text style={styles.title}>Séries Populares</Text>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContainer}
+        snapToInterval={165} 
+        decelerationRate="fast"
+        snapToAlignment="start"
+      >
+        {popularTV.map((item) => (
+          <FilmeCard
+            key={`tv-${item.id}`}
             media={item}
             onPress={() => handleMediaPress(item)}
             isCarousel={true}
@@ -283,7 +311,7 @@ const getStyles = (COLORS) => StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)', 
     justifyContent: 'flex-end',
   },
   heroContent: {

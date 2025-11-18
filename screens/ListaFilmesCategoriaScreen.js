@@ -157,18 +157,6 @@ const ListaFilmesCategoriaScreen = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle={theme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={COLORS.headerBackground} />
-      
-      <View style={styles.navHeader}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.navHeaderTitle}>{genreName}</Text>
-        <View style={styles.placeholderBox} />
-      </View>
 
       <FlatList
         data={movies}

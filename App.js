@@ -1,22 +1,27 @@
+// App.js
 import 'react-native-gesture-handler';
 import React from 'react';
-import { View, TouchableOpacity, StatusBar } from 'react-native'; 
+import { View, TouchableOpacity, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native'; 
-import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack'; 
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { FavoritesProvider } from './context/FavoritesContext';
-import { ThemeProvider, useTheme } from './context/ThemeContext'; 
-import ThemeToggleButton from './components/ThemeToggleButton'; 
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import ThemeToggleButton from './components/ThemeToggleButton';
+import CustomHeader from './components/CustomHeader';
 
-import ListaFilmesScreen from './screens/ListaFilmesScreen'; 
+import ListaFilmesScreen from './screens/ListaFilmesScreen';
 import DetalhesFilmeScreen from './screens/DetalhesFilmeScreen';
-import ListaFilmesCategoriaScreen from './screens/ListaFilmesCategoriaScreen'; 
+import ListaFilmesCategoriaScreen from './screens/ListaFilmesCategoriaScreen';
+import SearchResultsScreen from './screens/SearchResultsScreen';
+import DetalhesTemporadaScreen from './screens/DetalhesTemporadaScreen';
 
 const Stack = createStackNavigator();
 
 function AppContent() {
-  const { colors: COLORS, theme } = useTheme(); 
+  const { colors: COLORS, theme } = useTheme();
 
   const navigationTheme = {
     ...(theme === 'dark' ? DarkTheme : DefaultTheme),
@@ -31,57 +36,45 @@ function AppContent() {
 
   return (
     <NavigationContainer theme={navigationTheme}>
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
-      <Stack.Navigator 
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={COLORS.headerBackground} />
+      <Stack.Navigator
         initialRouteName="ListaFilmes"
         screenOptions={{
-          headerStyle: {
-            backgroundColor: COLORS.background,
-          },
-          headerTintColor: COLORS.textPrimary, 
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
+          // Define o CustomHeader para todas as telas
+          header: (props) => <CustomHeader {...props} />,
           cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
         }}
       >
         <Stack.Screen
-          name="ListaFilmes" 
-          component={ListaFilmesScreen} 
-          options={{ 
-            title: '',
-            headerLeft: () => (
-              <TouchableOpacity 
-                onPress={() => alert('Abrir Perfil/Menu!')} 
-                style={{ padding: 5, marginLeft: 15 }}
-              >
-                 <Ionicons name="person-circle-outline" size={30} color={COLORS.textPrimary} />
-               </TouchableOpacity>
-            ),
-            headerRight: () => (
-              <View style={{ flexDirection: 'row', marginRight: 15 }}>
-                <TouchableOpacity 
-                  onPress={() => alert('Pesquisar!')} 
-                  style={{ padding: 5, marginRight: 10 }}
-                >
-                  <Ionicons name="search" size={24} color={COLORS.textPrimary} />
-                </TouchableOpacity>
-                <ThemeToggleButton />
-              </View>
-            ),
-          }}
+          name="ListaFilmes"
+          component={ListaFilmesScreen}
+        // Removemos options complexas, o header cuida disso agora
         />
-        
+
         <Stack.Screen
           name="DetalhesFilme"
           component={DetalhesFilmeScreen}
-          options={{ headerShown: false }}
+          // REMOVA headerShown: false para que o header apareça
+          options={{ headerShown: true }}
         />
 
         <Stack.Screen
           name="ListaFilmesCategoriaScreen"
           component={ListaFilmesCategoriaScreen}
-          options={{ headerShown: false }}
+          // REMOVA headerShown: false
+          options={{ headerShown: true }}
+        />
+
+        <Stack.Screen
+          name="SearchResults"
+          component={SearchResultsScreen}
+          options={{ headerShown: true }}
+        />
+
+        <Stack.Screen
+          name="DetalhesTemporada"
+          component={DetalhesTemporadaScreen}
+          options={{ headerShowcn: true, title: 'Episódios' }}
         />
 
       </Stack.Navigator>
@@ -91,10 +84,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <FavoritesProvider>
-        <AppContent />
-      </FavoritesProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <FavoritesProvider>
+          <AppContent />
+        </FavoritesProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
