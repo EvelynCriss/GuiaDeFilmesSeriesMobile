@@ -1,29 +1,23 @@
-// App.js
 import 'react-native-gesture-handler';
 import React from 'react';
-import { View, TouchableOpacity, StatusBar } from 'react-native'; // <--- MUDANÇA: Importa StatusBar
+import { View, TouchableOpacity, StatusBar } from 'react-native'; 
 import { Ionicons } from '@expo/vector-icons';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native'; // <--- MUDANÇA: Importa temas
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native'; 
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack'; 
 
 import { FavoritesProvider } from './context/FavoritesContext';
-import { ThemeProvider, useTheme } from './context/ThemeContext'; // <--- MUDANÇA: Importa o Provedor e o Hook
-import ThemeToggleButton from './components/ThemeToggleButton'; // <--- MUDANÇA: Importa o botão
+import { ThemeProvider, useTheme } from './context/ThemeContext'; 
+import ThemeToggleButton from './components/ThemeToggleButton'; 
 
 import ListaFilmesScreen from './screens/ListaFilmesScreen'; 
-import DetalhesFilmeScreen from './screens/DetalhesFilmeScreen'; 
-
-// REMOVIDO: import { COLORS } from './components/ColorPalete';
+import DetalhesFilmeScreen from './screens/DetalhesFilmeScreen';
+import ListaFilmesCategoriaScreen from './screens/ListaFilmesCategoriaScreen'; 
 
 const Stack = createStackNavigator();
 
-// --- INÍCIO DA MUDANÇA ---
-// Criamos um componente interno que contém toda a lógica do navegador.
-// Fazemos isso para que ele possa usar o hook useTheme()
 function AppContent() {
-  const { colors: COLORS, theme } = useTheme(); // Usa o hook para pegar cores e o tema
+  const { colors: COLORS, theme } = useTheme(); 
 
-  // Isso faz com que a navegação do React Navigation se adapte ao tema (claro/escuro)
   const navigationTheme = {
     ...(theme === 'dark' ? DarkTheme : DefaultTheme),
     colors: {
@@ -40,7 +34,6 @@ function AppContent() {
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
       <Stack.Navigator 
         initialRouteName="ListaFilmes"
-        // As screenOptions agora usam o COLORS dinâmico do useTheme
         screenOptions={{
           headerStyle: {
             backgroundColor: COLORS.background,
@@ -65,7 +58,6 @@ function AppContent() {
                  <Ionicons name="person-circle-outline" size={30} color={COLORS.textPrimary} />
                </TouchableOpacity>
             ),
-            // Adicionamos o botão de trocar o tema aqui!
             headerRight: () => (
               <View style={{ flexDirection: 'row', marginRight: 15 }}>
                 <TouchableOpacity 
@@ -79,19 +71,24 @@ function AppContent() {
             ),
           }}
         />
+        
         <Stack.Screen
           name="DetalhesFilme"
           component={DetalhesFilmeScreen}
           options={{ headerShown: false }}
         />
+
+        <Stack.Screen
+          name="ListaFilmesCategoriaScreen"
+          component={ListaFilmesCategoriaScreen}
+          options={{ headerShown: false }}
+        />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
-// --- FIM DA MUDANÇA ---
 
-
-// O componente App principal agora só envolve os provedores
 export default function App() {
   return (
     <ThemeProvider>

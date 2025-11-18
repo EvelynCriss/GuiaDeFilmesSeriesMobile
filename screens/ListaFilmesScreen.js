@@ -1,10 +1,8 @@
-// screens/ListaPontosTuristicos.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import FilmeCard from '../components/FilmeCard'; 
-import RenderStars from '../components/RenderStars';
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
 import { useTheme } from '../context/ThemeContext';
@@ -12,27 +10,38 @@ import { useTheme } from '../context/ThemeContext';
 const API_KEY = TMDB_API_KEY;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const genres = [
+  { id: 28, name: "Ação", icon: "flame-outline" },
+  { id: 12, name: "Aventura", icon: "compass-outline" },
+  { id: 35, name: "Comédia", icon: "happy-outline" },
+  { id: 27, name: "Terror", icon: "skull-outline" },
+  { id: 878, name: "Ficção", icon: "planet-outline" },
+  { id: 10749, name: "Romance", icon: "heart-outline" },
+  { id: 16, name: "Animação", icon: "color-palette-outline" },
+  { id: 18, name: "Drama", icon: "film-outline" },
+];
+
+const CARD_WIDTH = 150; 
+const CARD_MARGIN = 15;
+const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN;
+
 const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
   const { colors: COLORS } = useTheme();
 
   const [popularMovies, setPopularMovies] = useState([]);
-  const [actionMovies, setActionMovies] = useState([]);
-  const [horrorMovies, setHorrorMovies] = useState([]);
   const [featuredMovie, setFeaturedMovie] = useState(null);
-  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchMovies = useCallback(async () => {
     if (!API_KEY) {
-      setError("Chave de API (TMDB_API_KEY) não encontrada no .env");
+      setError("Chave de API não encontrada");
       setLoading(false);
       return;
     }
 
     try {
-      // busca filmes popularoes
       const popularResponse = await api.get('/movie/popular', {
         params: {
           api_key: API_KEY,
@@ -40,105 +49,25 @@ const ListaFilmesScreen = () => {
         }
       });
 
-      // busca filmes de ação
-      const actionResponse = await api.get('/discover/movie', {
-        params: {
-          api_key: API_KEY,
-          language: 'pt-BR',
-          with_genres: 28, 
-          sort_by: 'popularity.desc'
-        }
-      });
-
-      // busca filmes dee terror
-      const horrorResponse = await api.get('/discover/movie', {
-        params: {
-          api_key: API_KEY,
-          language: 'pt-BR',
-          with_genres: 27, 
-          sort_by: 'popularity.desc'
-        }
-      });
-
-      // remove duplicados
       if (popularResponse.data.results) {
         const uniquePopular = Array.from(
           new Map(popularResponse.data.results.map(movie => [movie.id, movie])).values()
         );
         setPopularMovies(uniquePopular);
-        // define o primeiro filme popular como destaque
+        
         if (uniquePopular.length > 0) {
           setFeaturedMovie(uniquePopular[0]);
         }
       }
 
-      if (actionResponse.data.results) {
-        const uniqueAction = Array.from(
-          new Map(actionResponse.data.results.map(movie => [movie.id, movie])).values()
-        );
-        setActionMovies(uniqueAction);
-      }
-
-      if (horrorResponse.data.results) {
-        const uniqueHorror = Array.from(
-          new Map(horrorResponse.data.results.map(movie => [movie.id, movie])).values()
-        );
-        setHorrorMovies(uniqueHorror);
-      }
-
-      // busca avaliações do filme que está como popular
-      if (popularResponse.data.results && popularResponse.data.results.length > 0) {
-        const topMovies = popularResponse.data.results.slice(0, 5); 
-        const reviewPromises = topMovies.map(movie => 
-          api.get(`/movie/${movie.id}/reviews`, {
-            params: {
-              api_key: API_KEY,
-              language: 'pt-BR',
-            }
-          }).catch(() => null) 
-        );
-
-        const reviewResponses = await Promise.all(reviewPromises);
-        const allReviews = [];
-        
-        reviewResponses.forEach((response, index) => {
-          if (response && response.data && response.data.results && response.data.results.length > 0) {
-            
-            const review = response.data.results[0];
-            review.movieTitle = topMovies[index].title;
-            review.movieId = topMovies[index].id;
-            allReviews.push(review);
-          }
-        });
-
-        setReviews(allReviews.slice(0, 10)); 
-      }
-
     } catch (err) {
-      let errorMessage = 'Erro ao buscar filmes. Verifique sua conexão ou API Key.';
-      
+      let errorMessage = 'Erro ao buscar filmes.';
       if (err.response) {
-        // erro de resposta da api
-        console.error('Erro de resposta:', err.response.status, err.response.data);
-        if (err.response.status === 401) {
-          errorMessage = 'API Key inválida. Verifique sua chave de API.';
-        } else if (err.response.status === 404) {
-          errorMessage = 'Endpoint não encontrado. Verifique a URL da API.';
-        } else {
-          errorMessage = `Erro ${err.response.status}: ${err.response.data?.status_message || 'Erro desconhecido'}`;
-        }
-      } else if (err.request) {
-        // erro de requisição
-        console.error('Erro de requisição:', err.request);
-        errorMessage = 'Erro de conexão. Verifique sua internet.';
+        errorMessage = `Erro ${err.response.status}`;
       } else {
-        // outro erro
-        console.error('Erro:', err.message);
         errorMessage = `Erro: ${err.message}`;
       }
-      
       setError(errorMessage);
-      console.error('Erro completo:', err);
     } finally {
       setLoading(false);
     }
@@ -150,6 +79,13 @@ const ListaFilmesScreen = () => {
 
   const handleMediaPress = (media) => {
     navigation.navigate('DetalhesFilme', { mediaItem: media }); 
+  };
+
+  const handleCategoryPress = (genre) => {
+    navigation.navigate('ListaFilmesCategoriaScreen', { 
+      genreId: genre.id, 
+      genreName: genre.name 
+    });
   };
 
   const styles = getStyles(COLORS);
@@ -184,7 +120,6 @@ const ListaFilmesScreen = () => {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* filme em destaque */}
       {featuredMovie && (
         <TouchableOpacity 
           onPress={() => handleMediaPress(featuredMovie)}
@@ -208,22 +143,6 @@ const ListaFilmesScreen = () => {
                 <Text style={styles.heroDescription} numberOfLines={3}>
                   {featuredMovie.overview || 'Descrição não disponível'}
                 </Text>
-                <View style={styles.heroInfo}>
-                  <View style={styles.heroInfoItem}>
-                    <Ionicons name="calendar-outline" size={16} color="#FFFFFF" />
-                    <Text style={styles.heroInfoText}>
-                      {featuredMovie.release_date ? featuredMovie.release_date.split('-')[0] : 'N/A'}
-                    </Text>
-                  </View>
-                  {featuredMovie.vote_average && (
-                    <View style={styles.heroInfoItem}>
-                      <Ionicons name="star" size={16} color={COLORS.accent1} />
-                      <Text style={styles.heroInfoText}>
-                        {featuredMovie.vote_average.toFixed(1)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
                 <View style={styles.heroButton}>
                   <Text style={styles.heroButtonText}>Ver Detalhes</Text>
                   <Ionicons name="arrow-forward" size={20} color={COLORS.background} />
@@ -234,13 +153,35 @@ const ListaFilmesScreen = () => {
         </TouchableOpacity>
       )}
 
-      {/* filmes em alta */}
+      <Text style={styles.title}>Categorias</Text>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesContainer}
+      >
+        {genres.map((genre) => (
+          <TouchableOpacity
+            key={genre.id}
+            style={styles.categoryCard}
+            onPress={() => handleCategoryPress(genre)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.categoryIconContainer}>
+              <Ionicons name={genre.icon} size={28} color={COLORS.accent1} />
+            </View>
+            <Text style={styles.categoryText}>{genre.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <Text style={styles.title}>Filmes em Alta</Text>
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.carouselContainer}
-        snapToInterval={215}
+        
+        snapToInterval={165} 
+        
         decelerationRate="fast"
         snapToAlignment="start"
       >
@@ -254,96 +195,7 @@ const ListaFilmesScreen = () => {
         ))}
       </ScrollView>
 
-      {/* filmes de açãoo */}
-      <Text style={styles.title}>Filmes de Ação</Text>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.carouselContainer}
-        snapToInterval={215}
-        decelerationRate="fast"
-        snapToAlignment="start"
-      >
-        {actionMovies.map((item) => (
-          <FilmeCard
-            key={`action-${item.id.toString()}`}
-            media={item}
-            onPress={() => handleMediaPress(item)}
-            isCarousel={true}
-          />
-        ))}
-      </ScrollView>
-
-      {/* filmes de terror */}
-      <Text style={styles.title}>Filmes de Terror</Text>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.carouselContainer}
-        snapToInterval={215}
-        decelerationRate="fast"
-        snapToAlignment="start"
-      >
-        {horrorMovies.map((item) => (
-          <FilmeCard
-            key={`horror-${item.id.toString()}`}
-            media={item}
-            onPress={() => handleMediaPress(item)}
-            isCarousel={true}
-          />
-        ))}
-      </ScrollView>
-
-      {/* seção de avaliações */}
-      {reviews.length > 0 && (
-        <>
-          <Text style={styles.title}>Avaliações Recentes</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.reviewsContainer}
-          >
-            {reviews.map((review) => (
-              <TouchableOpacity
-                key={review.id}
-                style={styles.reviewCard}
-                onPress={() => {
-                  
-                  const movie = popularMovies.find(m => m.id === review.movieId);
-                  if (movie) {
-                    handleMediaPress(movie);
-                  }
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.reviewHeader}>
-                  <View style={styles.reviewAuthorContainer}>
-                    <Ionicons name="person-circle-outline" size={20} color={COLORS.accent1} />
-                    <Text style={styles.reviewAuthor} numberOfLines={1}>
-                      {review.author_details?.name || review.author || 'Anônimo'}
-                    </Text>
-                  </View>
-                  {review.author_details?.rating && (
-                    <View style={styles.reviewRating}>
-                      <RenderStars rating={review.author_details.rating} />
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.reviewMovieTitle} numberOfLines={1}>
-                  {review.movieTitle}
-                </Text>
-                <Text style={styles.reviewContent} numberOfLines={4}>
-                  {review.content}
-                </Text>
-                <View style={styles.reviewFooter}>
-                  <Ionicons name="arrow-forward-circle" size={16} color={COLORS.accent1} />
-                  <Text style={styles.reviewFooterText}>Ver filme</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </>
-      )}
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 };
@@ -355,15 +207,16 @@ const getStyles = (COLORS) => StyleSheet.create({
   },
   center: {
     justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 20,
-    marginTop: 20,
+    fontSize: 22,
+    marginBottom: 15,
+    marginTop: 25,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
-    textAlign: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
   },
   errorText: {
     fontSize: 16,
@@ -391,14 +244,37 @@ const getStyles = (COLORS) => StyleSheet.create({
   },
   carouselContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
   },
- 
+  categoriesContainer: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  categoryCard: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 80,
+  },
+  categoryIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.infoBoxBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+  },
+  categoryText: {
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   heroContainer: {
     width: SCREEN_WIDTH,
     height: 400,
     position: 'relative',
-    marginBottom: 10,
   },
   heroImage: {
     width: '100%',
@@ -407,12 +283,13 @@ const getStyles = (COLORS) => StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'flex-end',
   },
   heroContent: {
     padding: 24,
     paddingBottom: 32,
+    backgroundColor: 'transparent', 
   },
   heroBadge: {
     fontSize: 12,
@@ -420,11 +297,12 @@ const getStyles = (COLORS) => StyleSheet.create({
     color: COLORS.accent1,
     marginBottom: 8,
     letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   heroTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#FFFFFF', 
     marginBottom: 12,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 0, height: 2 },
@@ -432,29 +310,13 @@ const getStyles = (COLORS) => StyleSheet.create({
   },
   heroDescription: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: '#E0E0E0', 
     opacity: 0.9,
     marginBottom: 16,
     lineHeight: 20,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  heroInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    gap: 20,
-  },
-  heroInfoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroInfoText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    textShadowRadius: 2,
   },
   heroButton: {
     flexDirection: 'row',
@@ -469,68 +331,7 @@ const getStyles = (COLORS) => StyleSheet.create({
   heroButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.background,
-  },
-
-  reviewsContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  reviewCard: {
-    width: 280,
-    backgroundColor: COLORS.infoBoxBg,
-    borderRadius: 12,
-    padding: 16,
-    marginRight: 15,
-    shadowColor: COLORS.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  reviewHeader: {
-    marginBottom: 10,
-  },
-  reviewAuthorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  reviewAuthor: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    flex: 1,
-  },
-  reviewRating: {
-    marginTop: 4,
-  },
-  reviewMovieTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.accent1,
-    marginBottom: 10,
-    opacity: 0.8,
-  },
-  reviewContent: {
-    fontSize: 13,
-    color: COLORS.textPrimary,
-    lineHeight: 18,
-    opacity: 0.8,
-    marginBottom: 12,
-    flex: 1,
-  },
-  reviewFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 'auto',
-  },
-  reviewFooterText: {
-    fontSize: 12,
-    color: COLORS.accent1,
-    fontWeight: '600',
+    color: '#FFFFFF', 
   },
 });
 
