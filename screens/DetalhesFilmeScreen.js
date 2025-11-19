@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
 import api from '../services/api';
@@ -45,6 +46,7 @@ const DetalhesFilmeScreen = () => {
   const navigation = useNavigation();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { mediaItem: filmeBase } = route.params;
+  const insets = useSafeAreaInsets();
 
   const isTV = filmeBase?.media_type === 'tv' || !!filmeBase?.name;
 
@@ -327,7 +329,10 @@ const DetalhesFilmeScreen = () => {
 
   return (
     <>
-      <ScrollView style={styles.scrollViewContainer}>
+     <ScrollView 
+        style={styles.scrollViewContainer}
+        contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
+      >
         <ImageBackground
           source={{
             uri: movieDetails?.backdrop_path

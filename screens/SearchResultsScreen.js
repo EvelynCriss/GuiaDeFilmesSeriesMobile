@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  ActivityIndicator, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
   TouchableOpacity,
-  StatusBar 
+  StatusBar
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
@@ -19,7 +20,8 @@ const SearchResultsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { colors: COLORS, theme } = useTheme();
-  
+  const insets = useSafeAreaInsets();
+
   const { query } = route.params;
 
   const [results, setResults] = useState([]);
@@ -86,8 +88,8 @@ const SearchResultsScreen = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle={theme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={COLORS.headerBackground} />
-      
-      <View style={styles.headerContainer}>
+
+      <View style={[styles.headerContainer, { marginTop: 60 + insets.top }]}>
         <Text style={styles.resultsTitle}>
           Resultados para: <Text style={styles.highlightText}>{query}</Text>
         </Text>
@@ -95,7 +97,7 @@ const SearchResultsScreen = () => {
 
       {results.length === 0 ? (
         <View style={styles.center}>
-          <Ionicons name="search-outline" size={64} color={COLORS.textPrimary} style={{opacity: 0.5}} />
+          <Ionicons name="search-outline" size={64} color={COLORS.textPrimary} style={{ opacity: 0.5 }} />
           <Text style={styles.noResultsText}>Nenhum resultado encontrado.</Text>
         </View>
       ) : (
@@ -103,10 +105,12 @@ const SearchResultsScreen = () => {
           data={results}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: 80 + insets.bottom }
+          ]}
           showsVerticalScrollIndicator={false}
-          
-          // --- PROPS DE OTIMIZAÇÃO ---
+
           initialNumToRender={8}
           maxToRenderPerBatch={6}
           windowSize={5}

@@ -9,6 +9,7 @@ import {
   StatusBar
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
@@ -21,6 +22,7 @@ const ListaFilmesCategoriaScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { colors: COLORS, theme } = useTheme();
+  const insets = useSafeAreaInsets();
   
   const { genreId, genreName, mediaType = 'movie', iconName } = route.params;
 
@@ -170,7 +172,13 @@ const ListaFilmesCategoriaScreen = () => {
         keyExtractor={(item) => `${mediaType}-${item.id}`}
         renderItem={renderItem} // Usa a função memoizada
         ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent, 
+          { 
+            paddingTop: 60 + insets.top, 
+            paddingBottom: 80 + insets.bottom 
+          }
+        ]}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}

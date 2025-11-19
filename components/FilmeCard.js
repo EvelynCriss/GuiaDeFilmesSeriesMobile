@@ -18,20 +18,25 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
   const isFav = isFavorite(media.id);
   const favoriteIconName = isFav ? 'heart' : 'heart-outline';
   
+  // Ícone de favorito (Carrossel vs Lista)
   const favoriteIconColor = isCarousel 
     ? (isFav ? COLORS.accent1 : '#FFFFFF') 
     : (isFav ? COLORS.accent1 : COLORS.textPrimary);
 
   const rating = media.vote_average ? media.vote_average.toFixed(1) : '-';
 
-  // CORREÇÃO 1: Normalizar Título (Filmes usam title, Séries usam name)
+  // Normalizar Título e Data
   const displayTitle = media.title || media.name || 'Sem Título';
-
-  // CORREÇÃO 2: Normalizar Data (Filmes usam release_date, Séries usam first_air_date)
   const rawDate = media.release_date || media.first_air_date;
   const year = rawDate ? rawDate.split('-')[0] : 'N/A';
-  
   const language = media.original_language ? media.original_language.toUpperCase() : '';
+
+  // --- LÓGICA DE COR DA NOTA (NOVO) ---
+  // Detecta se é Série (TV) baseando-se no media_type ou existência de 'first_air_date'/'name'
+  const isTV = media.media_type === 'tv' || !!media.first_air_date || !!media.name;
+  
+  // Se for Série = Accent3 (Laranja/Amarelo), Se for Filme = Accent1 (Rosa/Vermelho)
+  const ratingBadgeColor = isTV ? COLORS.accent3 : COLORS.accent1;
 
   const styles = getStyles(COLORS, isCarousel);
 
@@ -48,14 +53,15 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
             <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteButtonCarousel}>
               <Ionicons name={isFav ? "heart" : "heart-outline"} size={20} color={favoriteIconColor} />
             </TouchableOpacity>
-            <View style={styles.ratingBadgeCarousel}>
+            
+            {/* Badge da Nota com cor dinâmica */}
+            <View style={[styles.ratingBadgeCarousel, { backgroundColor: ratingBadgeColor }]}>
                 <Ionicons name="star" size={10} color={COLORS.background} />
                 <Text style={styles.ratingTextCarousel}>{rating}</Text>
             </View>
           </View>
 
           <View style={styles.infoContainerCarousel}>
-            {/* Usando a variável corrigida displayTitle */}
             <Text style={styles.tituloCarousel} numberOfLines={1}>{displayTitle}</Text>
             <Text style={styles.subTituloCarousel}>{year}</Text>
           </View>
@@ -78,7 +84,6 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
         
         <View style={styles.infoContainer}>
           <View style={styles.headerRow}>
-            {/* Usando a variável corrigida displayTitle */}
             <Text style={styles.titulo} numberOfLines={2}>{displayTitle}</Text>
             <Pressable onPress={handleToggleFavorite} style={styles.favoriteButton}>
               <Ionicons name={favoriteIconName} size={22} color={favoriteIconColor} />
@@ -87,7 +92,8 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
 
           <View style={styles.metaContainer}>
             <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={14} color={COLORS.accent3} />
+              {/* Estrela com cor dinâmica */}
+              <Ionicons name="star" size={14} color={ratingBadgeColor} />
               <Text style={styles.ratingText}>{rating}</Text>
             </View>
             <Text style={styles.separator}>•</Text>
@@ -256,7 +262,7 @@ const getStyles = (COLORS, isCarousel) => StyleSheet.create({
     left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.accent1,
+    // backgroundColor: removido daqui pois é aplicado inline dinamicamente
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,

@@ -9,6 +9,7 @@ import {
   StatusBar 
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
 import { useTheme } from '../context/ThemeContext';
@@ -18,6 +19,7 @@ const DetalhesTemporadaScreen = () => {
   const { colors: COLORS, theme } = useTheme();
   const route = useRoute();
   const { seriesId, seasonNumber, seasonTitle } = route.params;
+  const insets = useSafeAreaInsets();
 
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,7 @@ const DetalhesTemporadaScreen = () => {
   return (
     <View style={styles.container}>
        <StatusBar barStyle={theme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={COLORS.headerBackground} />
-      <View style={styles.header}>
+      <View style={[styles.header, { marginTop: 60 + insets.top }]}>
         <Text style={styles.headerTitle}>{seasonTitle}</Text>
         <Text style={styles.headerSubtitle}>{episodes.length} Episódios</Text>
       </View>
@@ -86,7 +88,10 @@ const DetalhesTemporadaScreen = () => {
         data={episodes}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderEpisode}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: 80 + insets.bottom }
+        ]}
       />
     </View>
   );

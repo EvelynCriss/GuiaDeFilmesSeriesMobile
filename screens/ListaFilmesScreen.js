@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, TouchableOpacity, Dimensions, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import FilmeCard from '../components/FilmeCard'; 
 import api from '../services/api';
@@ -15,6 +16,7 @@ const CARD_WIDTH = 165;
 const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
   const { colors: COLORS } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [popularMovies, setPopularMovies] = useState([]);
   const [popularTV, setPopularTV] = useState([]); 
@@ -69,7 +71,7 @@ const ListaFilmesScreen = () => {
 
   // AGORA ACEITA TYPE (movie ou tv)
   const handleCategoryPress = (genre, type) => {
-    navigation.navigate('ListaFilmesCategoriaScreen', { 
+    navigation.navigate('ListaFilmesCategoria', { 
       genreId: genre.id, 
       genreName: genre.name,
       mediaType: type,
@@ -147,7 +149,14 @@ const ListaFilmesScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingTop: 60 + insets.top,
+        paddingBottom: 80 + insets.bottom 
+      }}
+    >
       {featuredMovie && (
         <TouchableOpacity 
           onPress={() => handleMediaPress(featuredMovie)}
