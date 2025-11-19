@@ -12,7 +12,7 @@ const GenrePill = ({ name, id, type }) => {
 
   const handlePress = () => {
     // Navega para a tela de lista enviando o ID e o Tipo (movie ou tv)
-    navigation.push('ListaFilmesCategoriaScreen', {
+    navigation.push('ListaFilmesCategoria', {
       genreId: id,
       genreName: name,
       mediaType: type, // Garante que busca filmes se for filme, séries se for série
