@@ -1,25 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, TouchableOpacity, Dimensions, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import FilmeCard from '../components/FilmeCard'; 
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
 import { useTheme } from '../context/ThemeContext';
+import { movie_genres, show_genres } from '../components/GenreCollection';
 
 const API_KEY = TMDB_API_KEY;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const genres = [
-  { id: 28, name: "Ação", icon: "flame-outline" },
-  { id: 12, name: "Aventura", icon: "compass-outline" },
-  { id: 35, name: "Comédia", icon: "happy-outline" },
-  { id: 27, name: "Terror", icon: "skull-outline" },
-  { id: 878, name: "Ficção", icon: "planet-outline" },
-  { id: 10749, name: "Romance", icon: "heart-outline" },
-  { id: 16, name: "Animação", icon: "color-palette-outline" },
-  { id: 18, name: "Drama", icon: "film-outline" },
-];
+const CARD_WIDTH = 165; 
 
 const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
@@ -39,45 +30,29 @@ const ListaFilmesScreen = () => {
     }
 
     try {
-      // 1. Busca Filmes
-      const popularResponse = await api.get('/movie/popular', {
-        params: { api_key: API_KEY, language: 'pt-BR' }
-      });
-
-      // 2. Busca Séries
-      const tvResponse = await api.get('/tv/popular', {
-        params: { api_key: API_KEY, language: 'pt-BR' }
-      });
+      const [popularResponse, tvResponse] = await Promise.all([
+        api.get('/movie/popular', { params: { api_key: API_KEY, language: 'pt-BR' } }),
+        api.get('/tv/popular', { params: { api_key: API_KEY, language: 'pt-BR' } })
+      ]);
 
       if (popularResponse.data.results) {
         const movies = popularResponse.data.results.map(m => ({...m, media_type: 'movie'}));
         setPopularMovies(movies);
-        
-        if (movies.length > 0) {
-          setFeaturedMovie(movies[0]);
-        }
+        if (movies.length > 0) setFeaturedMovie(movies[0]);
       }
 
       if (tvResponse.data.results) {
-        // --- CORREÇÃO DE DATA E TÍTULO ---
-        // A API de TV retorna 'name' e 'first_air_date'.
-        // Mapeamos para 'title' e 'release_date' para o FilmeCard entender e não mostrar N/A.
         const shows = tvResponse.data.results.map(s => ({
             ...s, 
             media_type: 'tv',
-            title: s.name, // Usa o nome como título
-            release_date: s.first_air_date // Usa a data de estreia como data de lançamento
+            title: s.name,
+            release_date: s.first_air_date
         }));
         setPopularTV(shows);
       }
 
     } catch (err) {
-      let errorMessage = 'Erro ao buscar filmes.';
-      if (err.response) {
-        errorMessage = `Erro ${err.response.status}`;
-      } else {
-        errorMessage = `Erro: ${err.message}`;
-      }
+      let errorMessage = err.response ? `Erro ${err.response.status}` : `Erro: ${err.message}`;
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -92,14 +67,60 @@ const ListaFilmesScreen = () => {
     navigation.navigate('DetalhesFilme', { mediaItem: media }); 
   };
 
-  const handleCategoryPress = (genre) => {
+  // AGORA ACEITA TYPE (movie ou tv)
+  const handleCategoryPress = (genre, type) => {
     navigation.navigate('ListaFilmesCategoriaScreen', { 
       genreId: genre.id, 
-      genreName: genre.name 
+      genreName: genre.name,
+      mediaType: type,
+      iconName: genre.icon
     });
   };
 
   const styles = getStyles(COLORS);
+
+  const renderMediaItem = useCallback(({ item }) => (
+    <FilmeCard
+      media={item}
+      onPress={() => handleMediaPress(item)}
+      isCarousel={true}
+    />
+  ), [handleMediaPress]);
+
+  // --- RENDERIZAÇÃO CATEGORIA FILME (Círculo) ---
+  const renderMovieCategoryItem = useCallback(({ item }) => (
+    <TouchableOpacity
+      style={styles.categoryCard}
+      onPress={() => handleCategoryPress(item, 'movie')}
+      activeOpacity={0.7}
+    >
+      <View style={styles.categoryIconContainerMovie}>
+        <Ionicons name={item.icon} size={28} color={COLORS.accent1} />
+      </View>
+      <Text style={styles.categoryText} numberOfLines={1}>{item.name}</Text>
+    </TouchableOpacity>
+  ), [COLORS, handleCategoryPress]);
+
+  // --- RENDERIZAÇÃO CATEGORIA SÉRIE (Quadrado Arredondado + Cor Diferente) ---
+  const renderSeriesCategoryItem = useCallback(({ item }) => (
+    <TouchableOpacity
+      style={styles.categoryCard}
+      onPress={() => handleCategoryPress(item, 'tv')}
+      activeOpacity={0.7}
+    >
+      {/* Estilo diferente: Quadrado arredondado e cor accent3 */}
+      <View style={styles.categoryIconContainerSeries}>
+        <Ionicons name={item.icon} size={26} color={COLORS.accent3} />
+      </View>
+      <Text style={styles.categoryText} numberOfLines={1}>{item.name}</Text>
+    </TouchableOpacity>
+  ), [COLORS, handleCategoryPress]);
+
+  const getItemLayoutMedia = useCallback((data, index) => ({
+    length: CARD_WIDTH,
+    offset: CARD_WIDTH * index,
+    index,
+  }), []);
 
   if (loading) {
     return (
@@ -117,11 +138,7 @@ const ListaFilmesScreen = () => {
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity 
           style={styles.retryButton}
-          onPress={() => {
-            setError(null);
-            setLoading(true);
-            fetchMovies();
-          }}
+          onPress={() => { setError(null); setLoading(true); fetchMovies(); }}
         >
           <Text style={styles.retryButtonText}>Tentar Novamente</Text>
         </TouchableOpacity>
@@ -164,64 +181,63 @@ const ListaFilmesScreen = () => {
         </TouchableOpacity>
       )}
 
-      <Text style={styles.title}>Categorias</Text>
-      <ScrollView 
-        horizontal 
+      <Text style={styles.title}>Filmes em Alta</Text>
+      <FlatList
+        data={popularMovies}
+        renderItem={renderMediaItem}
+        keyExtractor={(item) => `movie-${item.id}`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContainer}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={3}
+        removeClippedSubviews={true}
+        snapToInterval={CARD_WIDTH}
+        decelerationRate="fast"
+        snapToAlignment="start"
+        getItemLayout={getItemLayoutMedia}
+      />
+
+      <Text style={styles.title}>Categorias de Filmes</Text>
+      <FlatList
+        data={movie_genres}
+        renderItem={renderMovieCategoryItem} // Renderizador Específico
+        keyExtractor={(item) => `genre-movie-${item.id}`}
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoriesContainer}
-      >
-        {genres.map((genre) => (
-          <TouchableOpacity
-            key={genre.id}
-            style={styles.categoryCard}
-            onPress={() => handleCategoryPress(genre)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.categoryIconContainer}>
-              <Ionicons name={genre.icon} size={28} color={COLORS.accent1} />
-            </View>
-            <Text style={styles.categoryText}>{genre.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <Text style={styles.title}>Filmes em Alta</Text>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.carouselContainer}
-        snapToInterval={165} 
-        decelerationRate="fast"
-        snapToAlignment="start"
-      >
-        {popularMovies.map((item) => (
-          <FilmeCard
-            key={`movie-${item.id}`}
-            media={item}
-            onPress={() => handleMediaPress(item)}
-            isCarousel={true}
-          />
-        ))}
-      </ScrollView>
+        initialNumToRender={6}
+      />
 
       <Text style={styles.title}>Séries Populares</Text>
-      <ScrollView 
-        horizontal 
+      <FlatList
+        data={popularTV}
+        renderItem={renderMediaItem}
+        keyExtractor={(item) => `tv-${item.id}`}
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.carouselContainer}
-        snapToInterval={165} 
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={3}
+        removeClippedSubviews={true}
+        snapToInterval={CARD_WIDTH}
         decelerationRate="fast"
         snapToAlignment="start"
-      >
-        {popularTV.map((item) => (
-          <FilmeCard
-            key={`tv-${item.id}`}
-            media={item}
-            onPress={() => handleMediaPress(item)}
-            isCarousel={true}
-          />
-        ))}
-      </ScrollView>
+        getItemLayout={getItemLayoutMedia}
+      />
+
+      <Text style={styles.title}>Categorias de Séries</Text>
+      <FlatList
+        data={show_genres}
+        renderItem={renderSeriesCategoryItem} // Renderizador Diferente para Séries
+        keyExtractor={(item) => `genre-tv-${item.id}`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesContainer}
+        initialNumToRender={6}
+      />
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -282,10 +298,11 @@ const getStyles = (COLORS) => StyleSheet.create({
     marginRight: 16,
     width: 80,
   },
-  categoryIconContainer: {
+  // ESTILO FILME (Círculo Original)
+  categoryIconContainerMovie: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 30, // Totalmente circular
     backgroundColor: COLORS.infoBoxBg,
     justifyContent: 'center',
     alignItems: 'center',
@@ -293,12 +310,26 @@ const getStyles = (COLORS) => StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderColor,
   },
+  // NOVO ESTILO SÉRIE (Quadrado Arredondado)
+  categoryIconContainerSeries: {
+    width: 60,
+    height: 60,
+    borderRadius: 14, // Quadrado com cantos suaves
+    backgroundColor: COLORS.infoBoxBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+    // Opcional: rotação leve ou sombra diferente
+  },
   categoryText: {
     color: COLORS.textPrimary,
-    fontSize: 12,
+    fontSize: 11, // Leve redução para caber nomes maiores
     fontWeight: '500',
     textAlign: 'center',
   },
+  // ... Resto dos estilos (hero, etc) permanecem iguais ...
   heroContainer: {
     width: SCREEN_WIDTH,
     height: 400,

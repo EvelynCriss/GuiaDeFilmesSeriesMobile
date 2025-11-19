@@ -6,8 +6,7 @@ import {
   FlatList, 
   ActivityIndicator, 
   TouchableOpacity, 
-  StatusBar,
-  Animated
+  StatusBar
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,37 +17,27 @@ import FilmeCard from '../components/FilmeCard';
 
 const API_KEY = TMDB_API_KEY;
 
-const getGenreIcon = (id) => {
-  const icons = {
-    28: "flame",
-    12: "compass",
-    35: "happy",
-    27: "skull",
-    878: "planet",
-    10749: "heart",
-    16: "color-palette",
-    18: "film",
-  };
-  return icons[id] || "grid";
-};
-
 const ListaFilmesCategoriaScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { colors: COLORS, theme } = useTheme();
   
-  const { genreId, genreName } = route.params;
+  const { genreId, genreName, mediaType = 'movie', iconName } = route.params;
 
-  const [movies, setMovies] = useState([]);
+  const [mediaList, setMediaList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [error, setError] = useState(null);
-  const scrollY = new Animated.Value(0);
 
-  const styles = getStyles(COLORS);
+  const isMovie = mediaType === 'movie';
+  
+  const accentColor = mediaType === 'tv' ? COLORS.accent3 : COLORS.accent1;
+  const iconBorderRadius = mediaType === 'tv' ? 14 : 35;
 
-  const fetchMoviesByGenre = useCallback(async (pageNumber = 1) => {
+  const styles = getStyles(COLORS, accentColor, iconBorderRadius);
+
+  const fetchMediaByGenre = useCallback(async (pageNumber = 1) => {
     if (!API_KEY) {
       setError("Chave de API ausente");
       setLoading(false);
@@ -56,7 +45,9 @@ const ListaFilmesCategoriaScreen = () => {
     }
 
     try {
-      const response = await api.get('/discover/movie', {
+      const endpoint = `/discover/${mediaType}`;
+      
+      const response = await api.get(endpoint, {
         params: {
           api_key: API_KEY,
           language: 'pt-BR',
@@ -64,51 +55,67 @@ const ListaFilmesCategoriaScreen = () => {
           page: pageNumber,
           sort_by: 'popularity.desc',
           include_adult: false,
+          include_null_first_air_dates: false,
         }
       });
 
-      const newMovies = response.data.results;
+      const rawResults = response.data.results;
+      const normalizedResults = rawResults.map(item => ({
+          ...item,
+          media_type: mediaType,
+          title: item.title || item.name, 
+          release_date: item.release_date || item.first_air_date
+      }));
 
       if (pageNumber === 1) {
-        setMovies(newMovies);
+        setMediaList(normalizedResults);
       } else {
-        setMovies(prevMovies => {
-            const existingIds = new Set(prevMovies.map(m => m.id));
-            const filteredNewMovies = newMovies.filter(m => !existingIds.has(m.id));
-            return [...prevMovies, ...filteredNewMovies];
+        setMediaList(prevList => {
+            const existingIds = new Set(prevList.map(m => m.id));
+            const filteredNew = normalizedResults.filter(m => !existingIds.has(m.id));
+            return [...prevList, ...filteredNew];
         });
       }
 
     } catch (err) {
-      setError(err.message || 'Erro ao buscar filmes');
+      setError(err.message || 'Erro ao buscar títulos');
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [genreId]);
+  }, [genreId, mediaType]);
 
   useEffect(() => {
-    fetchMoviesByGenre(1);
-  }, [fetchMoviesByGenre]);
+    fetchMediaByGenre(1);
+  }, [fetchMediaByGenre]);
 
   const handleLoadMore = () => {
     if (!loadingMore && !loading) {
       setLoadingMore(true);
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchMoviesByGenre(nextPage);
+      fetchMediaByGenre(nextPage);
     }
   };
 
-  const handleMediaPress = (media) => {
+  const handleMediaPress = useCallback((media) => {
     navigation.navigate('DetalhesFilme', { mediaItem: media });
-  };
+  }, [navigation]);
+
+  // OTIMIZAÇÃO: renderItem memoizado para evitar recriação a cada render
+  const renderItem = useCallback(({ item }) => (
+    <FilmeCard
+      media={item}
+      onPress={() => handleMediaPress(item)}
+      isCarousel={false}
+    />
+  ), [handleMediaPress]);
 
   const renderFooter = () => {
     if (!loadingMore) return <View style={styles.footerSpacer} />;
     return (
       <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color={COLORS.accent1} />
+        <ActivityIndicator size="small" color={accentColor} />
       </View>
     );
   };
@@ -116,13 +123,13 @@ const ListaFilmesCategoriaScreen = () => {
   const renderHeader = () => (
     <View style={styles.listHeaderContainer}>
       <View style={styles.genreIconBadge}>
-        <Ionicons name={getGenreIcon(genreId)} size={32} color={COLORS.accent1} />
+        <Ionicons name={iconName || "grid-outline"} size={32} color={accentColor} />
       </View>
       <Text style={styles.listHeaderTitle}>
         Explorando <Text style={styles.highlightText}>{genreName}</Text>
       </Text>
       <Text style={styles.listHeaderSubtitle}>
-        Os filmes mais populares desta categoria
+        {isMovie ? 'Os filmes' : 'As séries'} mais populares desta categoria
       </Text>
     </View>
   );
@@ -130,7 +137,7 @@ const ListaFilmesCategoriaScreen = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={COLORS.accent1} />
+        <ActivityIndicator size="large" color={accentColor} />
       </View>
     );
   }
@@ -139,13 +146,13 @@ const ListaFilmesCategoriaScreen = () => {
     return (
       <View style={[styles.container, styles.center]}>
         <Ionicons name="cloud-offline-outline" size={64} color={COLORS.accent2} style={{ marginBottom: 20 }} />
-        <Text style={styles.errorText}>Não foi possível carregar os filmes.</Text>
+        <Text style={styles.errorText}>Não foi possível carregar o conteúdo.</Text>
         <TouchableOpacity 
           style={styles.retryButton}
           onPress={() => {
             setError(null);
             setLoading(true);
-            fetchMoviesByGenre(1);
+            fetchMediaByGenre(1);
           }}
         >
           <Text style={styles.retryButtonText}>Tentar Novamente</Text>
@@ -159,27 +166,28 @@ const ListaFilmesCategoriaScreen = () => {
       <StatusBar barStyle={theme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={COLORS.headerBackground} />
 
       <FlatList
-        data={movies}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <FilmeCard
-            media={item}
-            onPress={() => handleMediaPress(item)}
-            isCarousel={false}
-          />
-        )}
+        data={mediaList}
+        keyExtractor={(item) => `${mediaType}-${item.id}`}
+        renderItem={renderItem} // Usa a função memoizada
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         showsVerticalScrollIndicator={false}
+        
+        // --- PROPS DE OTIMIZAÇÃO ---
+        initialNumToRender={8}       // Renderiza apenas o suficiente para a tela inicial
+        maxToRenderPerBatch={6}      // Renderiza em lotes menores
+        windowSize={5}               // Mantém menos itens na memória (padrão é 21)
+        removeClippedSubviews={true} // Desmonta views fora da tela (essencial para Android)
+        updateCellsBatchingPeriod={50} // Delay entre renderizações de lote
       />
     </View>
   );
 };
 
-const getStyles = (COLORS) => StyleSheet.create({
+const getStyles = (COLORS, accentColor, iconBorderRadius) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -187,39 +195,6 @@ const getStyles = (COLORS) => StyleSheet.create({
   center: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  navHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.headerBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderSubtle,
-    elevation: 2,
-    shadowColor: COLORS.shadowColor,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    zIndex: 10,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  navHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    letterSpacing: 0.5,
-  },
-  placeholderBox: {
-    width: 40,
   },
   listHeaderContainer: {
     padding: 24,
@@ -230,7 +205,7 @@ const getStyles = (COLORS) => StyleSheet.create({
   genreIconBadge: {
     width: 70,
     height: 70,
-    borderRadius: 35,
+    borderRadius: iconBorderRadius,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -243,14 +218,16 @@ const getStyles = (COLORS) => StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     marginBottom: 8,
+    textAlign: 'center',
   },
   highlightText: {
-    color: COLORS.accent1,
+    color: accentColor,
   },
   listHeaderSubtitle: {
     fontSize: 14,
     color: COLORS.textPrimary,
     opacity: 0.6,
+    textAlign: 'center',
   },
   listContent: {
     paddingBottom: 30,
@@ -270,7 +247,7 @@ const getStyles = (COLORS) => StyleSheet.create({
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: COLORS.accent1,
+    backgroundColor: accentColor,
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 25,

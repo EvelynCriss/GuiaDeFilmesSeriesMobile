@@ -1,0 +1,43 @@
+const movie_genres = [
+    { id: 28, name: "Ação", icon: "flame-outline" },
+    { id: 16, name: "Animação", icon: "color-palette-outline" },
+    { id: 12, name: "Aventura", icon: "compass-outline" },
+    { id: 35, name: "Comédia", icon: "happy-outline" },
+    { id: 80, name: "Crime", icon: "finger-print-outline" },
+    { id: 99, name: "Documentário", icon: "videocam-outline" },
+    { id: 18, name: "Drama", icon: "film-outline" },
+    { id: 10751, name: "Familia", icon: "people-outline" },
+    { id: 14, name: "Fantasia", icon: "sparkles-outline" },
+    { id: 37, name: "Faroeste", icon: "beer-outline" },
+    { id: 878, name: "Ficção", icon: "planet-outline" },
+    { id: 10752, name: "Guerra", icon: "flag-outline" },
+    { id: 36, name: "Historia", icon: "earth-outline" },
+    { id: 9648, name: "Misterio", icon: "lock-closed-outline" },
+    { id: 10402, name: "Musica", icon: "musical-notes-outline" },
+    { id: 10749, name: "Romance", icon: "heart-outline" },
+    { id: 10770, name: "Filme de Televisão", icon: "tv-outline" },
+    { id: 27, name: "Terror", icon: "skull-outline" },
+    { id: 53, name: "Thriller", icon: "flash-outline" },
+];
+
+const show_genres = [
+    { id: 10759, name: "Ação e Aventura", icon: "compass-outline" },
+    { id: 16, name: "Animação", icon: "color-palette-outline" },
+    { id: 35, name: "Comédia", icon: "happy-outline" },
+    { id: 10762, name: "Crianças", icon: "flower-outline" },
+    { id: 80, name: "Crime", icon: "finger-print-outline" },
+    { id: 99, name: "Documentário", icon: "videocam-outline" },
+    { id: 18, name: "Drama", icon: "film-outline" },
+    { id: 10751, name: "Familia", icon: "people-outline" },
+    { id: 37, name: "Faroeste", icon: "beer-outline" },
+    { id: 10768, name: "Guerra e Política", icon: "globe-outline" },
+    { id: 36, name: "Historia", icon: "earth-outline" },
+    { id: 9648, name: "Misterio", icon: "lock-closed-outline" },
+    { id: 10763, name: "Notícias", icon: "newspaper-outline" },
+    { id: 10766, name: "Novela", icon: "sparkles-outline" },
+    { id: 10764, name: "Reality", icon: "videocam-outline" },
+    { id: 10765, name: "Sci-Fi e Fantasia", icon: "sparkles-outline" },
+    { id: 10767, name: "Talk-Show", icon: "mic-outline" },
+]
+
+export { movie_genres, show_genres };

@@ -55,10 +55,10 @@ const DetalhesFilmeScreen = () => {
   const [reviews, setReviews] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
-  
+
   const [bottomListData, setBottomListData] = useState([]);
   const [bottomListTitle, setBottomListTitle] = useState('');
-  
+
   const [trailerKey, setTrailerKey] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
 
@@ -90,8 +90,8 @@ const DetalhesFilmeScreen = () => {
             params: {
               api_key: API_KEY,
               language: 'pt-BR',
-              append_to_response: isTV 
-                ? 'aggregate_credits,reviews,videos' 
+              append_to_response: isTV
+                ? 'aggregate_credits,reviews,videos'
                 : 'credits,reviews,videos',
             },
           }),
@@ -128,7 +128,7 @@ const DetalhesFilmeScreen = () => {
             if (details.seasons && details.seasons.length > 0) {
               const filteredSeasons = details.seasons.filter(season => {
                 const isCurrentSeason = filmeBase.season_number !== undefined && season.season_number === filmeBase.season_number;
-                const isSameId = season.id === details.id; 
+                const isSameId = season.id === details.id;
                 // Filtrar também a temporada 0 (Especiais) se desejar, mas geralmente é útil
                 return !isCurrentSeason && !isSameId;
               });
@@ -149,7 +149,7 @@ const DetalhesFilmeScreen = () => {
                     part => part && part.id !== details.id
                   );
                   const formattedParts = otherMovies.map(m => ({ ...m, media_type: 'movie' }));
-                  
+
                   if (formattedParts.length > 0) {
                     setBottomListData(formattedParts);
                     setBottomListTitle('Da mesma coleção');
@@ -353,9 +353,9 @@ const DetalhesFilmeScreen = () => {
             <TouchableOpacity onPress={onShare} style={styles.actionButton}>
               <Ionicons name="share-social-outline" size={28} color={COLORS.textPrimary} />
             </TouchableOpacity>
-            
+
             <Text style={styles.titleBelowPoster}>{title}</Text>
-            
+
             <TouchableOpacity onPress={handleToggleFavorite} style={styles.actionButton}>
               <Ionicons name={favoriteIconName} size={30} color={favoriteIconColor} />
             </TouchableOpacity>
@@ -365,7 +365,7 @@ const DetalhesFilmeScreen = () => {
             <Animated.Text style={[styles.metaInfoText, generalAnimatedStyle]}>
               {year} · {duration}
             </Animated.Text>
-            
+
             <MovieRating
               rating={movieDetails?.vote_average}
               style={generalAnimatedStyle}
@@ -374,7 +374,12 @@ const DetalhesFilmeScreen = () => {
 
           <Animated.View style={[styles.genreContainer, generalAnimatedStyle]}>
             {movieDetails?.genres?.map((genre) => (
-              <GenrePill key={genre.id} name={genre.name} />
+              <GenrePill
+                key={genre.id}
+                name={genre.name}
+                id={genre.id}
+                type={isTV ? 'tv' : 'movie'}
+              />
             ))}
           </Animated.View>
 
@@ -426,24 +431,24 @@ const DetalhesFilmeScreen = () => {
               <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>
                 {bottomListTitle}
               </Animated.Text>
-              
+
               <FlatList
                 data={bottomListData}
                 renderItem={({ item }) => (
                   <CollectionCardItem
                     item={item}
                     onPress={() => {
-                        if (isTV) {
-                          // Navegar para DetalhesTemporada
-                          navigation.navigate('DetalhesTemporada', {
-                            seriesId: movieDetails.id,
-                            seasonNumber: item.season_number,
-                            seasonTitle: item.name,
-                          });
-                        } else {
-                           // Navegar para DetalhesFilme (da coleção)
-                           navigation.push('DetalhesFilme', { mediaItem: item });
-                        }
+                      if (isTV) {
+                        // Navegar para DetalhesTemporada
+                        navigation.navigate('DetalhesTemporada', {
+                          seriesId: movieDetails.id,
+                          seasonNumber: item.season_number,
+                          seasonTitle: item.name,
+                        });
+                      } else {
+                        // Navegar para DetalhesFilme (da coleção)
+                        navigation.push('DetalhesFilme', { mediaItem: item });
+                      }
                     }}
                   />
                 )}
@@ -458,7 +463,7 @@ const DetalhesFilmeScreen = () => {
           {reviews.length > 0 && (
             <>
               <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Avaliações</Animated.Text>
-              
+
               <Animated.FlatList
                 data={reviews}
                 renderItem={({ item, index }) => (

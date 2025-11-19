@@ -131,7 +131,7 @@ const getStyles = (COLORS) => StyleSheet.create({
   },
   episodeImage: {
     width: 130,
-    height: 100,
+    height: 'auto',
     resizeMode: 'cover',
   },
   textContainer: {

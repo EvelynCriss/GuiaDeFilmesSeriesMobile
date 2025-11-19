@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, Pressable, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
@@ -17,16 +17,20 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
 
   const isFav = isFavorite(media.id);
   const favoriteIconName = isFav ? 'heart' : 'heart-outline';
-  // No carrossel, o ícone fica sobre a imagem, então precisa de contraste (branco ou cor de destaque)
-  // Na lista, usa a cor do tema.
+  
   const favoriteIconColor = isCarousel 
     ? (isFav ? COLORS.accent1 : '#FFFFFF') 
     : (isFav ? COLORS.accent1 : COLORS.textPrimary);
 
   const rating = media.vote_average ? media.vote_average.toFixed(1) : '-';
-  const year = media.release_date ? media.release_date.split('-')[0] : 'N/A';
+
+  // CORREÇÃO 1: Normalizar Título (Filmes usam title, Séries usam name)
+  const displayTitle = media.title || media.name || 'Sem Título';
+
+  // CORREÇÃO 2: Normalizar Data (Filmes usam release_date, Séries usam first_air_date)
+  const rawDate = media.release_date || media.first_air_date;
+  const year = rawDate ? rawDate.split('-')[0] : 'N/A';
   
-  // Tratamento para não quebrar se não tiver idioma
   const language = media.original_language ? media.original_language.toUpperCase() : '';
 
   const styles = getStyles(COLORS, isCarousel);
@@ -36,26 +40,23 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.touchableCarousel}>
         <View style={styles.cardCarousel}>
-          {/* Imagem / Pôster */}
           <View style={styles.posterContainerCarousel}>
              <Image
               source={{ uri: media.poster_path ? `${POSTER_BASE_URL_W500}${media.poster_path}` : 'https://via.placeholder.com/300x450.png?text=No+Image' }}
               style={styles.posterCarousel}
             />
-            {/* Botão de Favorito flutuante sobre a imagem */}
             <TouchableOpacity onPress={handleToggleFavorite} style={styles.favoriteButtonCarousel}>
               <Ionicons name={isFav ? "heart" : "heart-outline"} size={20} color={favoriteIconColor} />
             </TouchableOpacity>
-             {/* Badge de Nota flutuante */}
             <View style={styles.ratingBadgeCarousel}>
                 <Ionicons name="star" size={10} color={COLORS.background} />
                 <Text style={styles.ratingTextCarousel}>{rating}</Text>
             </View>
           </View>
 
-          {/* Informações abaixo da imagem */}
           <View style={styles.infoContainerCarousel}>
-            <Text style={styles.tituloCarousel} numberOfLines={1}>{media.title}</Text>
+            {/* Usando a variável corrigida displayTitle */}
+            <Text style={styles.tituloCarousel} numberOfLines={1}>{displayTitle}</Text>
             <Text style={styles.subTituloCarousel}>{year}</Text>
           </View>
         </View>
@@ -77,7 +78,8 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
         
         <View style={styles.infoContainer}>
           <View style={styles.headerRow}>
-            <Text style={styles.titulo} numberOfLines={2}>{media.title}</Text>
+            {/* Usando a variável corrigida displayTitle */}
+            <Text style={styles.titulo} numberOfLines={2}>{displayTitle}</Text>
             <Pressable onPress={handleToggleFavorite} style={styles.favoriteButton}>
               <Ionicons name={favoriteIconName} size={22} color={favoriteIconColor} />
             </Pressable>
@@ -110,7 +112,6 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
 };
 
 const getStyles = (COLORS, isCarousel) => StyleSheet.create({
-  // --- ESTILOS GERAIS (Lista) ---
   touchable: { 
     width: '100%',
     marginBottom: 16,
@@ -121,7 +122,6 @@ const getStyles = (COLORS, isCarousel) => StyleSheet.create({
     backgroundColor: COLORS.surface || COLORS.infoBoxBg,
     borderRadius: 12,
     overflow: 'hidden',
-    // Sombra suave
     elevation: 3,
     shadowColor: COLORS.shadowColor,
     shadowOffset: { width: 0, height: 2 },
@@ -202,19 +202,17 @@ const getStyles = (COLORS, isCarousel) => StyleSheet.create({
     opacity: 0.6,
     lineHeight: 18,
   },
-
-  // --- ESTILOS CARROSSEL (Vertical) ---
   touchableCarousel: {
-    width: 150, // Largura fixa mais compacta
+    width: 150, 
     marginRight: 15,
   },
   cardCarousel: {
     borderRadius: 12,
-    backgroundColor: 'transparent', // Fundo transparente para focar na imagem
+    backgroundColor: 'transparent',
   },
   posterContainerCarousel: {
     width: 150,
-    height: 225, // Proporção padrão de pôster (2:3)
+    height: 225,
     borderRadius: 12,
     elevation: 5,
     shadowColor: COLORS.shadowColor,
@@ -248,7 +246,7 @@ const getStyles = (COLORS, isCarousel) => StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)', // Fundo escuro translúcido para contraste
+    backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 20,
     padding: 6,
   },
@@ -266,9 +264,11 @@ const getStyles = (COLORS, isCarousel) => StyleSheet.create({
   ratingTextCarousel: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: COLORS.background, // Contraste com a cor de destaque
+    color: COLORS.background,
     marginLeft: 4,
   },
 });
 
-export default FilmeCard;
+export default memo(FilmeCard, (prevProps, nextProps) => {
+  return prevProps.media.id === nextProps.media.id; 
+});

@@ -20,7 +20,7 @@ const SearchResultsScreen = () => {
   const route = useRoute();
   const { colors: COLORS, theme } = useTheme();
   
-  const { query } = route.params; // Recebe o texto da busca
+  const { query } = route.params;
 
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,6 @@ const SearchResultsScreen = () => {
 
     setLoading(true);
     try {
-      // Usa search/multi para buscar filmes E séries
       const response = await api.get('/search/multi', {
         params: {
           api_key: TMDB_API_KEY,
@@ -47,7 +46,6 @@ const SearchResultsScreen = () => {
         }
       });
 
-      // Filtra para remover 'person' (atores) e manter apenas filmes e tv
       const filteredResults = response.data.results.filter(
         item => item.media_type === 'movie' || item.media_type === 'tv'
       );
@@ -64,9 +62,18 @@ const SearchResultsScreen = () => {
     fetchSearchResults();
   }, [fetchSearchResults]);
 
-  const handleMediaPress = (media) => {
+  const handleMediaPress = useCallback((media) => {
     navigation.navigate('DetalhesFilme', { mediaItem: media });
-  };
+  }, [navigation]);
+
+  // OTIMIZAÇÃO: renderItem extraído
+  const renderItem = useCallback(({ item }) => (
+    <FilmeCard
+      media={item}
+      onPress={() => handleMediaPress(item)}
+      isCarousel={false}
+    />
+  ), [handleMediaPress]);
 
   if (loading) {
     return (
@@ -95,15 +102,16 @@ const SearchResultsScreen = () => {
         <FlatList
           data={results}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <FilmeCard
-              media={item}
-              onPress={() => handleMediaPress(item)}
-              isCarousel={false} // Reutiliza o estilo de grade/lista
-            />
-          )}
+          renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          
+          // --- PROPS DE OTIMIZAÇÃO ---
+          initialNumToRender={8}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={true}
+          updateCellsBatchingPeriod={50}
         />
       )}
     </View>
