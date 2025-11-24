@@ -1,22 +1,39 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, TouchableOpacity, Dimensions, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  ActivityIndicator, 
+  Image, 
+  TouchableOpacity, 
+  Dimensions, 
+  StatusBar, 
+  Animated, 
+  Easing
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import FilmeCard from '../components/FilmeCard'; 
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/ThemeContext'; 
 import { movie_genres, show_genres } from '../components/GenreCollection';
 
 const API_KEY = TMDB_API_KEY;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = 165; 
+const HERO_HEIGHT = 480;
 
 const ListaFilmesScreen = () => { 
   const navigation = useNavigation();
-  const { colors: COLORS } = useTheme();
+  const { colors: COLORS } = useTheme(); 
   const insets = useSafeAreaInsets();
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current; 
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   const [popularMovies, setPopularMovies] = useState([]);
   const [popularTV, setPopularTV] = useState([]); 
@@ -62,14 +79,30 @@ const ListaFilmesScreen = () => {
   }, []);
 
   useEffect(() => {
-    fetchMovies();
-  }, [fetchMovies]);
+    if (!loading) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+      ]).start();
+    } else {
+      fetchMovies();
+    }
+  }, [loading, fetchMovies]);
 
   const handleMediaPress = (media) => {
     navigation.navigate('DetalhesFilme', { mediaItem: media }); 
   };
 
-  // AGORA ACEITA TYPE (movie ou tv)
   const handleCategoryPress = (genre, type) => {
     navigation.navigate('ListaFilmesCategoria', { 
       genreId: genre.id, 
@@ -79,23 +112,30 @@ const ListaFilmesScreen = () => {
     });
   };
 
+  const handleOpenCinemaMap = () => {
+    navigation.navigate('CinemaMap');
+  };
+
   const styles = getStyles(COLORS);
 
+  const imageTranslateY = scrollY.interpolate({
+    inputRange: [-HERO_HEIGHT, 0, HERO_HEIGHT],
+    outputRange: [-HERO_HEIGHT / 2, 0, HERO_HEIGHT * 0.5], 
+    extrapolate: 'clamp',
+  });
+
+  const imageScale = scrollY.interpolate({
+    inputRange: [-HERO_HEIGHT, 0],
+    outputRange: [2, 1], 
+    extrapolateRight: 'clamp',
+  });
+
   const renderMediaItem = useCallback(({ item }) => (
-    <FilmeCard
-      media={item}
-      onPress={() => handleMediaPress(item)}
-      isCarousel={true}
-    />
+    <FilmeCard media={item} onPress={() => handleMediaPress(item)} isCarousel={true} />
   ), [handleMediaPress]);
 
-  // --- RENDERIZAÇÃO CATEGORIA FILME (Círculo) ---
   const renderMovieCategoryItem = useCallback(({ item }) => (
-    <TouchableOpacity
-      style={styles.categoryCard}
-      onPress={() => handleCategoryPress(item, 'movie')}
-      activeOpacity={0.7}
-    >
+    <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress(item, 'movie')} activeOpacity={0.7}>
       <View style={styles.categoryIconContainerMovie}>
         <Ionicons name={item.icon} size={28} color={COLORS.accent1} />
       </View>
@@ -103,14 +143,8 @@ const ListaFilmesScreen = () => {
     </TouchableOpacity>
   ), [COLORS, handleCategoryPress]);
 
-  // --- RENDERIZAÇÃO CATEGORIA SÉRIE (Quadrado Arredondado + Cor Diferente) ---
   const renderSeriesCategoryItem = useCallback(({ item }) => (
-    <TouchableOpacity
-      style={styles.categoryCard}
-      onPress={() => handleCategoryPress(item, 'tv')}
-      activeOpacity={0.7}
-    >
-      {/* Estilo diferente: Quadrado arredondado e cor accent3 */}
+    <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress(item, 'tv')} activeOpacity={0.7}>
       <View style={styles.categoryIconContainerSeries}>
         <Ionicons name={item.icon} size={26} color={COLORS.accent3} />
       </View>
@@ -119,16 +153,14 @@ const ListaFilmesScreen = () => {
   ), [COLORS, handleCategoryPress]);
 
   const getItemLayoutMedia = useCallback((data, index) => ({
-    length: CARD_WIDTH,
-    offset: CARD_WIDTH * index,
-    index,
+    length: CARD_WIDTH, offset: CARD_WIDTH * index, index,
   }), []);
 
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color={COLORS.accent1} /> 
-        <Text style={styles.loadingText}>Carregando...</Text> 
+        <Text style={styles.loadingText}>Preparando a pipoca...</Text> 
       </View>
     );
   }
@@ -138,10 +170,7 @@ const ListaFilmesScreen = () => {
       <View style={[styles.container, styles.center]}>
         <Ionicons name="alert-circle-outline" size={64} color={COLORS.accent1} style={{ marginBottom: 20 }} />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
-          style={styles.retryButton}
-          onPress={() => { setError(null); setLoading(true); fetchMovies(); }}
-        >
+        <TouchableOpacity style={styles.retryButton} onPress={() => { setError(null); setLoading(true); fetchMovies(); }}>
           <Text style={styles.retryButtonText}>Tentar Novamente</Text>
         </TouchableOpacity>
       </View>
@@ -149,107 +178,159 @@ const ListaFilmesScreen = () => {
   }
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingTop: 60 + insets.top,
-        paddingBottom: 80 + insets.bottom 
-      }}
-    >
-      {featuredMovie && (
-        <TouchableOpacity 
-          onPress={() => handleMediaPress(featuredMovie)}
-          activeOpacity={0.9}
-        >
-          <View style={styles.heroContainer}>
-            <Image
-              source={{
-                uri: featuredMovie.backdrop_path
-                  ? `https://image.tmdb.org/t/p/w1280${featuredMovie.backdrop_path}`
-                  : 'https://via.placeholder.com/800x450.png?text=No+Image'
-              }}
-              style={styles.heroImage}
-            />
-            <View style={styles.heroOverlay}>
-              <View style={styles.heroContent}>
-                <Text style={styles.heroBadge}>EM DESTAQUE</Text>
-                <Text style={styles.heroTitle} numberOfLines={2}>
-                  {featuredMovie.title}
-                </Text>
-                <Text style={styles.heroDescription} numberOfLines={3}>
-                  {featuredMovie.overview || 'Descrição não disponível'}
-                </Text>
-                <View style={styles.heroButton}>
-                  <Text style={styles.heroButtonText}>Ver Detalhes</Text>
-                  <Ionicons name="arrow-forward" size={20} color={COLORS.background} />
-                </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
+      <Animated.ScrollView 
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
+      >
+        {featuredMovie && (
+          <TouchableOpacity onPress={() => handleMediaPress(featuredMovie)} activeOpacity={0.95}>
+            <View style={styles.heroContainer}>
+              <Animated.Image
+                source={{
+                  uri: featuredMovie.backdrop_path
+                    ? `https://image.tmdb.org/t/p/w1280${featuredMovie.backdrop_path}`
+                    : 'https://via.placeholder.com/800x450.png?text=No+Image'
+                }}
+                style={[
+                  styles.heroImage,
+                  {
+                    transform: [
+                      { translateY: imageTranslateY },
+                      { scale: imageScale }
+                    ]
+                  }
+                ]}
+              />
+              
+              <View style={styles.heroOverlay}>
+                <Animated.View style={[
+                  styles.heroContent,
+                  { 
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }] 
+                  }
+                ]}>
+                  <View style={styles.heroBadgeContainer}>
+                      <Text style={styles.heroBadge}>EM DESTAQUE</Text>
+                  </View>
+                  <Text style={styles.heroTitle} numberOfLines={2}>
+                    {featuredMovie.title}
+                  </Text>
+                  <Text style={styles.heroDescription} numberOfLines={2}>
+                    {featuredMovie.overview || 'Descrição não disponível'}
+                  </Text>
+                  <View style={styles.heroButtonModern}>
+                    <Text style={styles.heroButtonTextModern}>Ver Agora</Text>
+                    <Ionicons name="play-circle" size={24} color={COLORS.background} />
+                  </View>
+                </Animated.View>
               </View>
             </View>
+          </TouchableOpacity>
+        )}
+
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          
+          <View style={styles.cinemaButtonContainer}>
+            <TouchableOpacity 
+                style={[styles.cinemaButton, { backgroundColor: COLORS.surface }]} 
+                onPress={handleOpenCinemaMap}
+                activeOpacity={0.8}
+            >
+                <View style={[styles.cinemaIconBadge, {backgroundColor: COLORS.accent2 + '20'}]}>
+                    <Ionicons name="map" size={24} color={COLORS.accent2} />
+                </View>
+                <View style={styles.cinemaTextContainer}>
+                    <Text style={[styles.cinemaButtonTitle, {color: COLORS.textPrimary}]}>Cinemas Perto de Você</Text>
+                    <Text style={[styles.cinemaButtonSubtitle, {color: COLORS.textPrimary}]}>Encontre sessões e horários próximos</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.textPrimary} style={{opacity: 0.5}} />
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      )}
 
-      <Text style={styles.title}>Filmes em Alta</Text>
-      <FlatList
-        data={popularMovies}
-        renderItem={renderMediaItem}
-        keyExtractor={(item) => `movie-${item.id}`}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.carouselContainer}
-        initialNumToRender={4}
-        maxToRenderPerBatch={4}
-        windowSize={3}
-        removeClippedSubviews={true}
-        snapToInterval={CARD_WIDTH}
-        decelerationRate="fast"
-        snapToAlignment="start"
-        getItemLayout={getItemLayoutMedia}
-      />
+          <View style={styles.sectionHeader}>
+              <View style={[styles.accentBar, { backgroundColor: COLORS.accent1 }]} />
+              <Text style={styles.title}>Filmes em Alta</Text>
+          </View>
+          <FlatList
+            data={popularMovies}
+            renderItem={renderMediaItem}
+            keyExtractor={(item) => `movie-${item.id}`}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselContainer}
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            windowSize={3}
+            removeClippedSubviews={true}
+            snapToInterval={CARD_WIDTH}
+            decelerationRate="fast"
+            snapToAlignment="start"
+            getItemLayout={getItemLayoutMedia}
+          />
 
-      <Text style={styles.title}>Categorias de Filmes</Text>
-      <FlatList
-        data={movie_genres}
-        renderItem={renderMovieCategoryItem} // Renderizador Específico
-        keyExtractor={(item) => `genre-movie-${item.id}`}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-        initialNumToRender={6}
-      />
+          <View style={styles.sectionHeader}>
+              <View style={[styles.accentBar, { backgroundColor: COLORS.accent1 }]} />
+              <Text style={styles.title}>Categorias de Filmes</Text>
+          </View>
+          <FlatList
+            data={movie_genres}
+            renderItem={renderMovieCategoryItem}
+            keyExtractor={(item) => `genre-movie-${item.id}`}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+            initialNumToRender={6}
+          />
 
-      <Text style={styles.title}>Séries Populares</Text>
-      <FlatList
-        data={popularTV}
-        renderItem={renderMediaItem}
-        keyExtractor={(item) => `tv-${item.id}`}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.carouselContainer}
-        initialNumToRender={4}
-        maxToRenderPerBatch={4}
-        windowSize={3}
-        removeClippedSubviews={true}
-        snapToInterval={CARD_WIDTH}
-        decelerationRate="fast"
-        snapToAlignment="start"
-        getItemLayout={getItemLayoutMedia}
-      />
+          <View style={styles.sectionHeader}>
+              <View style={[styles.accentBar, { backgroundColor: COLORS.accent3 }]} />
+              <Text style={styles.title}>Séries Populares</Text>
+          </View>
+          <FlatList
+            data={popularTV}
+            renderItem={renderMediaItem}
+            keyExtractor={(item) => `tv-${item.id}`}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselContainer}
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            windowSize={3}
+            removeClippedSubviews={true}
+            snapToInterval={CARD_WIDTH}
+            decelerationRate="fast"
+            snapToAlignment="start"
+            getItemLayout={getItemLayoutMedia}
+          />
 
-      <Text style={styles.title}>Categorias de Séries</Text>
-      <FlatList
-        data={show_genres}
-        renderItem={renderSeriesCategoryItem} // Renderizador Diferente para Séries
-        keyExtractor={(item) => `genre-tv-${item.id}`}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-        initialNumToRender={6}
-      />
+          <View style={styles.sectionHeader}>
+              <View style={[styles.accentBar, { backgroundColor: COLORS.accent3 }]} />
+              <Text style={styles.title}>Categorias de Séries</Text>
+          </View>
+          <FlatList
+            data={show_genres}
+            renderItem={renderSeriesCategoryItem}
+            keyExtractor={(item) => `genre-tv-${item.id}`}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+            initialNumToRender={6}
+          />
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+          <View style={{ height: 40 }} />
+        </Animated.View>
+
+      </Animated.ScrollView>
+    </View>
   );
 };
 
@@ -263,13 +344,24 @@ const getStyles = (COLORS) => StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 30,
+    marginBottom: 15,
+    paddingHorizontal: 20,
+  },
+  accentBar: {
+    width: 4,
+    height: 24,
+    borderRadius: 2,
+    marginRight: 10,
+  },
   title: {
     fontSize: 22,
-    marginBottom: 15,
-    marginTop: 25,
-    fontWeight: 'bold',
+    fontWeight: '800', 
     color: COLORS.textPrimary,
-    paddingHorizontal: 20,
+    letterSpacing: 0.5,
   },
   errorText: {
     fontSize: 16,
@@ -307,99 +399,147 @@ const getStyles = (COLORS) => StyleSheet.create({
     marginRight: 16,
     width: 80,
   },
-  // ESTILO FILME (Círculo Original)
   categoryIconContainerMovie: {
     width: 60,
     height: 60,
-    borderRadius: 30, // Totalmente circular
+    borderRadius: 30,
     backgroundColor: COLORS.infoBoxBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.borderColor,
+    borderColor: COLORS.borderSubtle, 
   },
-  // NOVO ESTILO SÉRIE (Quadrado Arredondado)
   categoryIconContainerSeries: {
     width: 60,
     height: 60,
-    borderRadius: 14, // Quadrado com cantos suaves
+    borderRadius: 14,
     backgroundColor: COLORS.infoBoxBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.borderColor,
-    // Opcional: rotação leve ou sombra diferente
+    borderColor: COLORS.borderSubtle,
   },
   categoryText: {
     color: COLORS.textPrimary,
-    fontSize: 11, // Leve redução para caber nomes maiores
+    fontSize: 11,
     fontWeight: '500',
     textAlign: 'center',
   },
-  // ... Resto dos estilos (hero, etc) permanecem iguais ...
   heroContainer: {
     width: SCREEN_WIDTH,
-    height: 400,
+    height: HERO_HEIGHT,
     position: 'relative',
+    overflow: 'hidden', 
+    backgroundColor: COLORS.background, 
   },
   heroImage: {
     width: '100%',
-    height: '100%',
+    height: '100%', 
     resizeMode: 'cover',
+    position: 'absolute', 
+    top: 0,
+    left: 0,
   },
+  // MUDANÇA 1: Transparência Fixa (vibrante) para AMBOS os temas
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)', 
+    backgroundColor: 'rgba(0,0,0,0.05)', 
     justifyContent: 'flex-end',
   },
+  // MUDANÇA 2: Box de Texto translúcido fixo para AMBOS os temas
   heroContent: {
     padding: 24,
-    paddingBottom: 32,
-    backgroundColor: 'transparent', 
+    paddingBottom: 40,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)', 
+    borderTopLeftRadius: 30, 
+  },
+  heroBadgeContainer: {
+    backgroundColor: COLORS.accent1,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 10,
   },
   heroBadge: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
-    color: COLORS.accent1,
-    marginBottom: 8,
+    color: COLORS.background,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   heroTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 34,
+    fontWeight: '900',
     color: '#FFFFFF', 
-    marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    marginBottom: 8,
+    textShadowColor: COLORS.shadowColor,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   heroDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#E0E0E0', 
-    opacity: 0.9,
+    opacity: 0.95,
     marginBottom: 16,
-    lineHeight: 20,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    lineHeight: 22,
+    fontWeight: '500',
   },
-  heroButton: {
+  heroButtonModern: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.accent1,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 30, 
     alignSelf: 'flex-start',
-    gap: 8,
+    gap: 10,
+    elevation: 5, 
+    shadowColor: COLORS.shadowColor, 
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
-  heroButtonText: {
+  heroButtonTextModern: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF', 
+    color: COLORS.background, 
+    textTransform: 'uppercase',
+  },
+  cinemaButtonContainer: {
+      paddingHorizontal: 20,
+      marginTop: 25,
+  },
+  cinemaButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      borderRadius: 20,
+      elevation: 2,
+      shadowColor: COLORS.shadowColor,
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+  },
+  cinemaIconBadge: {
+      width: 50, height: 50,
+      borderRadius: 25,
+      justifyContent: 'center', alignItems: 'center',
+      marginRight: 15,
+  },
+  cinemaTextContainer: {
+      flex: 1,
+  },
+  cinemaButtonTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 4,
+  },
+  cinemaButtonSubtitle: {
+      fontSize: 13,
+      opacity: 0.7,
   },
 });
 

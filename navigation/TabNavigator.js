@@ -1,10 +1,11 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack'; 
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Importação das Telas
 import ListaFilmesScreen from '../screens/ListaFilmesScreen'; 
 import FavoritesScreen from '../screens/FavoriteScreen';     
 import ProfileScreen from '../screens/ProfileScreen';
@@ -12,14 +13,16 @@ import DetalhesFilmeScreen from '../screens/DetalhesFilmeScreen';
 import ListaFilmesCategoriaScreen from '../screens/ListaFilmesCategoriaScreen';
 import DetalhesTemporadaScreen from '../screens/DetalhesTemporadaScreen';
 import SearchResultsScreen from '../screens/SearchResultsScreen';
+import CinemaMapScreen from '../screens/CinemaMapScreen';
 
+// Contexto e Componentes
 import { useTheme } from '../context/ThemeContext';
 import CustomHeader from '../components/CustomHeader'; 
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Opções para Header Transparente e Flutuante
+// --- Configuração do Header ---
 const getHeaderOptions = (transparent = true, floating = true) => ({
   headerShown: true,
   headerTransparent: floating, 
@@ -28,115 +31,92 @@ const getHeaderOptions = (transparent = true, floating = true) => ({
   headerBackTitleVisible: false,
 });
 
+// --- Stacks de Navegação ---
+
 const HomeStackNavigator = () => {
   return (
-    <Stack.Navigator>
-      <Stack.Screen 
-        name="ListaFilmesIndex" 
-        component={ListaFilmesScreen} 
-        options={getHeaderOptions(true, true)} 
-      />
-      
-      {/* AQUI ESTÁ O SEGREDO:
-        Como estas telas estão dentro desta Stack, e esta Stack está dentro da Tab,
-        a TabBar continuará visível.
-      */}
-
-      <Stack.Screen 
-        name="DetalhesFilme" 
-        component={DetalhesFilmeScreen} 
-        options={getHeaderOptions(true, true)} 
-      />
-
-      <Stack.Screen 
-        name="ListaFilmesCategoria" 
-        component={ListaFilmesCategoriaScreen} 
-        options={getHeaderOptions(true, true)} 
-      />
-
-      <Stack.Screen 
-        name="DetalhesTemporada" 
-        component={DetalhesTemporadaScreen} 
-        options={getHeaderOptions(true, true)} 
-      />
-
-      <Stack.Screen 
-        name="SearchResults" 
-        component={SearchResultsScreen} 
-        options={getHeaderOptions(true, true)} 
-      />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ListaFilmesIndex" component={ListaFilmesScreen} options={getHeaderOptions(true, true)} />
+      <Stack.Screen name="DetalhesFilme" component={DetalhesFilmeScreen} options={getHeaderOptions(true, true)} />
+      <Stack.Screen name="ListaFilmesCategoria" component={ListaFilmesCategoriaScreen} options={getHeaderOptions(true, true)} />
+      <Stack.Screen name="DetalhesTemporada" component={DetalhesTemporadaScreen} options={getHeaderOptions(true, true)} />
+      <Stack.Screen name="SearchResults" component={SearchResultsScreen} options={getHeaderOptions(true, true)} />
+      <Stack.Screen name="CinemaMap" component={CinemaMapScreen} options={getHeaderOptions(true, true)} />
     </Stack.Navigator>
   );
 };
 
 const FavoritesStackNavigator = () => {
   return (
-    <Stack.Navigator>
-      <Stack.Screen 
-        name="FavoritesIndex" 
-        component={FavoritesScreen} 
-        options={getHeaderOptions(true, true)} 
-      />
-      {/* Necessário repetir aqui caso navegue para detalhes vindo dos favoritos */}
-      <Stack.Screen 
-        name="DetalhesFilme" 
-        component={DetalhesFilmeScreen} 
-        options={getHeaderOptions(true, true)} 
-      />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="FavoritesIndex" component={FavoritesScreen} options={getHeaderOptions(true, true)} />
+      <Stack.Screen name="DetalhesFilme" component={DetalhesFilmeScreen} options={getHeaderOptions(true, true)} />
     </Stack.Navigator>
   );
 };
 
+// --- Tab Navigator Principal ---
+
 const TabNavigator = () => {
   const { colors: COLORS } = useTheme();
   const insets = useSafeAreaInsets(); 
+
+  // Altura base da TabBar
+  const TAB_BAR_HEIGHT = 60;
+  // Altura total considerando a área segura do iPhone (bottom inset)
+  const totalHeight = TAB_BAR_HEIGHT + insets.bottom;
 
   return (
     <Tab.Navigator
       initialRouteName="HomeTab"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarShowLabel: false,
+        tabBarShowLabel: false, // Removemos o texto para focar no ícone
+        
+        // Estilo da Barra
         tabBarStyle: {
           backgroundColor: COLORS.headerBackground,
           borderTopColor: COLORS.borderSubtle,
           borderTopWidth: 1,
-          height: 60 + insets.bottom, 
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-          paddingTop: 10,
-          elevation: 0,
-          // Garante que a TabBar não fique transparente/invisível por acidente
-          position: 'absolute', 
+          height: totalHeight,
+          paddingTop: 10, // Empurra os ícones um pouco para baixo para centralizar verticalmente
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 10, // Espaço seguro inferior
+          position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
+          elevation: 0, // Remove sombra padrão do Android
+          zIndex: 100,
         },
+        
+        // Cores automáticas fornecidas para a prop 'color' do ícone
         tabBarActiveTintColor: COLORS.accent1,
         tabBarInactiveTintColor: COLORS.textPrimary,
+        
+        // Renderização do Ícone
         tabBarIcon: ({ focused, color }) => {
           let iconName;
 
           if (route.name === 'HomeTab') {
-            iconName = focused ? 'home' : 'home-outline';
+            iconName = focused ? 'videocam' : 'videocam-outline';
           } else if (route.name === 'FavoritesTab') {
             iconName = focused ? 'heart' : 'heart-outline';
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          if (route.name === 'HomeTab') {
-             return (
-               <View style={{
-                 backgroundColor: focused ? COLORS.accent1 + '20' : 'transparent',
-                 padding: 8,
-                 borderRadius: 20,
-               }}>
-                 <Ionicons name={iconName} size={30} color={color} />
-               </View>
-             );
-          }
-
-          return <Ionicons name={iconName} size={24} color={color} style={{ opacity: focused ? 1 : 0.6 }} />;
+          return (
+            <View style={[
+              styles.iconContainer, 
+              { backgroundColor: focused ? COLORS.accent1 + '20' : 'transparent' }
+            ]}>
+              <Ionicons 
+                name={iconName} 
+                size={22} // Tamanho ideal para caber no container sem tocar nas bordas
+                color={color} 
+              />
+            </View>
+          );
         },
       })}
     >
@@ -146,5 +126,22 @@ const TabNavigator = () => {
     </Tab.Navigator>
   );
 };
+
+// --- Estilos Fixos para Alinhamento Perfeito ---
+const styles = StyleSheet.create({
+  iconContainer: {
+    // Dimensões fixas garantem que a "pílula" tenha sempre o mesmo tamanho
+    width: 60,  
+    height: 36, 
+    borderRadius: 18, // Metade da altura para ficar totalmente arredondado
+    
+    // Centralização absoluta do ícone dentro da pílula
+    alignItems: 'center',
+    justifyContent: 'center',
+    
+    // Garante que não haja distorção
+    overflow: 'hidden',
+  }
+});
 
 export default TabNavigator;
