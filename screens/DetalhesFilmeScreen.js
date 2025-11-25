@@ -20,12 +20,14 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
+import { useReviews } from '../context/ReviewsContext';
 import api from '../services/api';
 import { TMDB_API_KEY } from '@env';
 import { useTheme } from '../context/ThemeContext';
 
 import CollectionCardItem from '../components/CollectionCardItem';
 import ReviewModal from '../components/ReviewModal';
+import AddReviewModal from '../components/AddReviewModal';
 import ReviewCardItem from '../components/ReviewCardItem';
 import GenrePill from '../components/GenrePill';
 import MovieRating from '../components/MovieRating';
@@ -57,6 +59,9 @@ const DetalhesFilmeScreen = () => {
   const [reviews, setReviews] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
+  const [addModalVisible, setAddModalVisible] = useState(false);
+
+  const { addReview, getReviewsForMovie } = useReviews();
 
   const [bottomListData, setBottomListData] = useState([]);
   const [bottomListTitle, setBottomListTitle] = useState('');
@@ -178,7 +183,14 @@ const DetalhesFilmeScreen = () => {
         });
 
         const combinedReviews = Array.from(uniqueReviewsMap.values()).filter(Boolean);
-        setReviews(combinedReviews);
+
+        
+        try {
+          const localReviews = getReviewsForMovie(filmeBase.id) || [];
+          setReviews([...localReviews, ...combinedReviews]);
+        } catch (e) {
+          setReviews(combinedReviews);
+        }
 
       } catch (err) {
         setError('Erro ao buscar detalhes.');
@@ -213,6 +225,16 @@ const DetalhesFilmeScreen = () => {
   const closeReviewModal = () => {
     setModalVisible(false);
     setSelectedReview(null);
+  };
+
+  const openAddReviewModal = () => setAddModalVisible(true);
+  const closeAddReviewModal = () => setAddModalVisible(false);
+
+  const handleSaveLocalReview = (review) => {
+    const movieId = movieDetails?.id || filmeBase?.id;
+    if (!movieId) return;
+    addReview(movieId, review);
+    setReviews(prev => [review, ...prev]);
   };
 
   const onShare = async () => {
@@ -375,6 +397,9 @@ const DetalhesFilmeScreen = () => {
               rating={movieDetails?.vote_average}
               style={generalAnimatedStyle}
             />
+            <TouchableOpacity onPress={openAddReviewModal} style={styles.actionButton} activeOpacity={0.7}>
+              <Ionicons name="star-outline" size={24} color={COLORS.accent1} />
+            </TouchableOpacity>
           </View>
 
           <Animated.View style={[styles.genreContainer, generalAnimatedStyle]}>
@@ -504,6 +529,12 @@ const DetalhesFilmeScreen = () => {
         visible={modalVisible}
         onClose={closeReviewModal}
         review={selectedReview}
+      />
+
+      <AddReviewModal
+        visible={addModalVisible}
+        onClose={closeAddReviewModal}
+        onSave={handleSaveLocalReview}
       />
     </>
   );
@@ -694,6 +725,7 @@ const getStyles = (COLORS) => StyleSheet.create({
     paddingVertical: 10,
     paddingBottom: 20,
   },
+  // compact action buttons reuse `actionButton` style
 });
 
 export default DetalhesFilmeScreen;

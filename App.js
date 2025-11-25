@@ -6,6 +6,7 @@ import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { FavoritesProvider } from './context/FavoritesContext';
+import { ReviewsProvider } from './context/ReviewsContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import CustomHeader from './components/CustomHeader';
 
@@ -53,7 +54,9 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <FavoritesProvider>
-          <AppContent />
+          <ReviewsProvider>
+            <AppContent />
+          </ReviewsProvider>
         </FavoritesProvider>
       </ThemeProvider>
     </SafeAreaProvider>
