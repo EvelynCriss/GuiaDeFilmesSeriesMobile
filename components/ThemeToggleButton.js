@@ -1,4 +1,3 @@
-// components/ThemeToggleButton.js
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +11,7 @@ const ThemeToggleButton = () => {
       <Ionicons
         name={theme === 'dark' ? 'sunny-outline' : 'moon-outline'}
         size={24}
-        color={colors.textPrimary} // Usa a cor do tema
+        color={colors.textPrimary}
       />
     </TouchableOpacity>
   );
@@ -21,7 +20,7 @@ const ThemeToggleButton = () => {
 const styles = StyleSheet.create({
   button: {
     padding: 10,
-    marginRight: 10, // Ajuste conforme necessário
+    marginRight: 10,
   },
 });
 

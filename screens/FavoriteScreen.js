@@ -101,7 +101,6 @@ const FavoritesScreen = () => {
           numColumns={2}
           key={2}
           
-          // MUDANÇA 1: Centraliza o bloco de cards na tela
           columnWrapperStyle={{ 
             justifyContent: 'center', 
             marginBottom: 20,

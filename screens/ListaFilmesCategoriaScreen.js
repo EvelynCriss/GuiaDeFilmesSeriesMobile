@@ -104,7 +104,6 @@ const ListaFilmesCategoriaScreen = () => {
     navigation.navigate('DetalhesFilme', { mediaItem: media });
   }, [navigation]);
 
-  // OTIMIZAÇÃO: renderItem memoizado para evitar recriação a cada render
   const renderItem = useCallback(({ item }) => (
     <FilmeCard
       media={item}
@@ -184,12 +183,11 @@ const ListaFilmesCategoriaScreen = () => {
         ListFooterComponent={renderFooter}
         showsVerticalScrollIndicator={false}
         
-        // --- PROPS DE OTIMIZAÇÃO ---
-        initialNumToRender={8}       // Renderiza apenas o suficiente para a tela inicial
-        maxToRenderPerBatch={6}      // Renderiza em lotes menores
-        windowSize={5}               // Mantém menos itens na memória (padrão é 21)
-        removeClippedSubviews={true} // Desmonta views fora da tela (essencial para Android)
-        updateCellsBatchingPeriod={50} // Delay entre renderizações de lote
+        initialNumToRender={8}       
+        maxToRenderPerBatch={6}      
+        windowSize={5}               
+        removeClippedSubviews={true} 
+        updateCellsBatchingPeriod={50} 
       />
     </View>
   );

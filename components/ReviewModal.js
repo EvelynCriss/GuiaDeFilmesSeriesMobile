@@ -1,4 +1,3 @@
-// components/ReviewModal.js
 import React from 'react';
 import {
   Modal,
@@ -10,14 +9,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import RenderStars from './RenderStars'; // Importa o componente de estrelas
+import RenderStars from './RenderStars';
 
 const ReviewModal = ({ visible, onClose, review }) => {
-  const { colors: COLORS } = useTheme(); // <--- MUDANÇA
+  const { colors: COLORS } = useTheme();
   const styles = getStyles(COLORS);
   
   if (!review) {
-    return null; // Não renderiza nada se não houver review selecionado
+    return null;
   }
 
   return (

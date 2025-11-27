@@ -142,7 +142,6 @@ const getStyles = (COLORS, insets) => StyleSheet.create({
       borderWidth: 2,
       borderColor: COLORS.background,
       elevation: 5,
-      // CORRIGIDO: Usa a cor de sombra da paleta
       shadowColor: COLORS.shadowColor,
       shadowOffset: {width: 0, height: 2},
       shadowOpacity: 0.3,
@@ -158,7 +157,6 @@ const getStyles = (COLORS, insets) => StyleSheet.create({
       justifyContent: 'center', alignItems: 'center',
       elevation: 5,
       zIndex: 10,
-      // CORRIGIDO
       shadowColor: COLORS.shadowColor,
       shadowOffset: {width: 0, height: 2},
       shadowOpacity: 0.3,
@@ -172,7 +170,6 @@ const getStyles = (COLORS, insets) => StyleSheet.create({
       paddingVertical: 8, paddingHorizontal: 20,
       borderRadius: 20,
       elevation: 3,
-      // CORRIGIDO
       shadowColor: COLORS.shadowColor,
   },
   infoText: {
@@ -181,7 +178,6 @@ const getStyles = (COLORS, insets) => StyleSheet.create({
   }
 });
 
-// JSON do Google Maps permanece "hardcoded" pois são chaves específicas da API do Google, não cores de UI.
 const mapDarkStyle = [
   { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
   { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },

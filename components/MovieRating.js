@@ -1,11 +1,9 @@
-// components/MovieRating.js
 import React from 'react';
 import { Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
-// Criamos o componente animado do LinearGradient para aceitar as props de estilo (opacity, transform)
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
 const getRatingGradientColors = (rating, COLORS) => {
@@ -33,7 +31,6 @@ const MovieRating = ({ rating, style }) => {
   const { colors: COLORS } = useTheme();
   const styles = getStyles(COLORS);
 
-  // Se não houver nota, não renderiza nada
   if (rating === null || rating === undefined || rating <= 0) {
     return null;
   }
@@ -64,8 +61,8 @@ const getStyles = (COLORS) => StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
-    overflow: 'hidden', // Importante para o gradiente respeitar a borda
-    marginVertical: 8,  // Mantendo o espaçamento que tinha na versão de estrelas
+    overflow: 'hidden',
+    marginVertical: 8,
   },
   ratingText: {
     fontSize: 18,

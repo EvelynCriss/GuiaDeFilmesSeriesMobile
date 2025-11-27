@@ -18,29 +18,23 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
   const isFav = isFavorite(media.id);
   const favoriteIconName = isFav ? 'heart' : 'heart-outline';
   
-  // Ícone de favorito (Carrossel vs Lista)
   const favoriteIconColor = isCarousel 
     ? (isFav ? COLORS.accent1 : '#FFFFFF') 
     : (isFav ? COLORS.accent1 : COLORS.textPrimary);
 
   const rating = media.vote_average ? media.vote_average.toFixed(1) : '-';
 
-  // Normalizar Título e Data
   const displayTitle = media.title || media.name || 'Sem Título';
   const rawDate = media.release_date || media.first_air_date;
   const year = rawDate ? rawDate.split('-')[0] : 'N/A';
   const language = media.original_language ? media.original_language.toUpperCase() : '';
 
-  // --- LÓGICA DE COR DA NOTA (NOVO) ---
-  // Detecta se é Série (TV) baseando-se no media_type ou existência de 'first_air_date'/'name'
   const isTV = media.media_type === 'tv' || !!media.first_air_date || !!media.name;
   
-  // Se for Série = Accent3 (Laranja/Amarelo), Se for Filme = Accent1 (Rosa/Vermelho)
   const ratingBadgeColor = isTV ? COLORS.accent3 : COLORS.accent1;
 
   const styles = getStyles(COLORS, isCarousel);
 
-  // --- MODO CARROSSEL (Vertical) ---
   if (isCarousel) {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.touchableCarousel}>
@@ -54,7 +48,6 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
               <Ionicons name={isFav ? "heart" : "heart-outline"} size={20} color={favoriteIconColor} />
             </TouchableOpacity>
             
-            {/* Badge da Nota com cor dinâmica */}
             <View style={[styles.ratingBadgeCarousel, { backgroundColor: ratingBadgeColor }]}>
                 <Ionicons name="star" size={10} color={COLORS.background} />
                 <Text style={styles.ratingTextCarousel}>{rating}</Text>
@@ -70,7 +63,6 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
     );
   }
 
-  // --- MODO LISTA (Horizontal) ---
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [
         styles.touchable,
@@ -92,7 +84,6 @@ const FilmeCard = ({ media, onPress, isCarousel = false }) => {
 
           <View style={styles.metaContainer}>
             <View style={styles.ratingContainer}>
-              {/* Estrela com cor dinâmica */}
               <Ionicons name="star" size={14} color={ratingBadgeColor} />
               <Text style={styles.ratingText}>{rating}</Text>
             </View>
@@ -262,7 +253,6 @@ const getStyles = (COLORS, isCarousel) => StyleSheet.create({
     left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    // backgroundColor: removido daqui pois é aplicado inline dinamicamente
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,

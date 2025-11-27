@@ -1,4 +1,3 @@
-// components/ReviewCardItem.js
 import React from 'react';
 import {
   View,
@@ -10,9 +9,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import RenderStars from './RenderStars'; // Importa o componente de estrelas
+import RenderStars from './RenderStars';
 
-// Pegamos a largura da tela aqui apenas para o `substring`
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.7;
 
@@ -72,7 +70,6 @@ const ReviewCardItem = ({ item, index, scrollX, isExpanded, onOpenModal, ITEM_SI
             : `${reviewContent.substring(0, 250)}...`}
         </Text>
         {needsTruncation && (
-          // O "Ver mais" agora chama a prop onOpenModal
           <TouchableOpacity onPress={onOpenModal}>
             <Text style={styles.readMoreText}>
               {isExpanded ? 'Ver menos' : 'Ver mais'}
@@ -89,8 +86,8 @@ const getStyles = (COLORS) => StyleSheet.create({
     backgroundColor: COLORS.reviewCardBg,
     borderRadius: 10,
     padding: 15,
-    width: CARD_WIDTH, // Constante local
-    marginHorizontal: 0.5, // Constante local
+    width: CARD_WIDTH, 
+    marginHorizontal: 0.5,
     shadowColor: COLORS.accent1,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 0.4,
@@ -98,9 +95,7 @@ const getStyles = (COLORS) => StyleSheet.create({
     elevation: 8,
     borderWidth: 1,
     borderColor: COLORS.reviewCardBorder,
-    // REMOVIDO: minHeight: 120 (se existia)
-    // ADICIONADO: Permite que o cartão se expanda verticalmente
-    alignSelf: 'flex-start', // Importante para o cartão não esticar desnecessariamente
+    alignSelf: 'flex-start',
   },
   reviewHeader: {
     flexDirection: 'row',

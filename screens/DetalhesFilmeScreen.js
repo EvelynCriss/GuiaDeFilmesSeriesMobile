@@ -1,4 +1,3 @@
-// screens/DetalhesFilmeScreen.js
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -42,7 +41,6 @@ const CARD_MARGIN = 0.5;
 const ITEM_SIZE = CARD_WIDTH + CARD_MARGIN * 2;
 const SPACER_WIDTH = (SCREEN_WIDTH - ITEM_SIZE) / 2;
 
-// --- COMPONENTE ANIMADO ---
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 const DetalhesFilmeScreen = () => {
@@ -693,15 +691,16 @@ const getStyles = (COLORS) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   addReviewButtonWide: {
-    backgroundColor: COLORS.accent2, // --- ALTERADO PARA ACCENT2 ---
+    backgroundColor: COLORS.accent2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 30, 
+    marginTop: 10,
     width: '65%', 
-    shadowColor: COLORS.accent2,    // --- ALTERADO PARA ACCENT2 ---
+    shadowColor: COLORS.accent2, 
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,

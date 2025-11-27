@@ -68,7 +68,6 @@ const SearchResultsScreen = () => {
     navigation.navigate('DetalhesFilme', { mediaItem: media });
   }, [navigation]);
 
-  // OTIMIZAÇÃO: renderItem extraído
   const renderItem = useCallback(({ item }) => (
     <FilmeCard
       media={item}

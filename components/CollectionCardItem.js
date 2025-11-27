@@ -1,4 +1,3 @@
-// components/CollectionCardItem.js
 import React from 'react';
 import { TouchableOpacity, Image, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
@@ -37,10 +36,7 @@ const getStyles = (COLORS) => StyleSheet.create({
     width: 140,
     marginRight: 15,
     alignItems: 'center',
-    
-    // --- A CORREÇÃO ESTÁ AQUI ---
-    // Impede o TouchableOpacity de esticar verticalmente
-    // para preencher o padding do container da FlatList.
+
     alignSelf: 'flex-start', 
   },
   collectionPoster: {
