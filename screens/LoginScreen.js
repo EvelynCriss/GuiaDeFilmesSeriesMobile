@@ -27,7 +27,7 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const darkGradient = ['#1a1a1a', '#2C1A1D', '#0f0f0f']; 
+  const darkGradient = ['#1a1a1a', '#613a41ff', '#0f0f0f']; 
   const lightGradient = ['#ffffff', '#fff0f3', '#ffe4e8'];
 
   const activeGradient = theme === 'dark' ? darkGradient : lightGradient;
@@ -154,11 +154,11 @@ const styles = StyleSheet.create({
   
   logoContainer: { 
     alignItems: 'center', 
-    marginBottom: 60 
+    marginBottom: 0 
   },
   logo: { 
-    width: 240, 
-    height: 240,
+    width: 440, 
+    height: 440,
   },
   
   form: { marginBottom: 20 },

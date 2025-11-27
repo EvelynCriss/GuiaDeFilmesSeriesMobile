@@ -41,7 +41,7 @@ const ListaFilmesScreen = () => {
        if (popularResponse.data.results) {
          const movies = popularResponse.data.results.map(m => ({...m, media_type: 'movie'}));
          setPopularMovies(movies);
-         if (movies.length > 0) setFeaturedMovie(movies[0]);
+         if (movies.length > 0) setFeaturedMovie(movies[1]);
        }
        if (tvResponse.data.results) {
          setPopularTV(tvResponse.data.results.map(s => ({...s, media_type: 'tv', title: s.name, release_date: s.first_air_date})));
