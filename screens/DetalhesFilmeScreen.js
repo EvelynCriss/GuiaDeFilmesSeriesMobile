@@ -1,5 +1,5 @@
 // screens/DetalhesFilmeScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -42,6 +42,9 @@ const CARD_MARGIN = 0.5;
 const ITEM_SIZE = CARD_WIDTH + CARD_MARGIN * 2;
 const SPACER_WIDTH = (SCREEN_WIDTH - ITEM_SIZE) / 2;
 
+// --- COMPONENTE ANIMADO ---
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
 const DetalhesFilmeScreen = () => {
   const { colors: COLORS } = useTheme();
   const route = useRoute();
@@ -49,6 +52,9 @@ const DetalhesFilmeScreen = () => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { mediaItem: filmeBase } = route.params;
   const insets = useSafeAreaInsets();
+
+  const scrollViewRef = useRef(null);
+  const [reviewsSectionY, setReviewsSectionY] = useState(0);
 
   const isTV = filmeBase?.media_type === 'tv' || !!filmeBase?.name;
 
@@ -130,13 +136,11 @@ const DetalhesFilmeScreen = () => {
             }
           }
 
-          // --- LÓGICA PARA LISTA INFERIOR ---
           if (isTV) {
             if (details.seasons && details.seasons.length > 0) {
               const filteredSeasons = details.seasons.filter(season => {
                 const isCurrentSeason = filmeBase.season_number !== undefined && season.season_number === filmeBase.season_number;
                 const isSameId = season.id === details.id;
-                // Filtrar também a temporada 0 (Especiais) se desejar, mas geralmente é útil
                 return !isCurrentSeason && !isSameId;
               });
 
@@ -183,7 +187,6 @@ const DetalhesFilmeScreen = () => {
         });
 
         const combinedReviews = Array.from(uniqueReviewsMap.values()).filter(Boolean);
-
         
         try {
           const localReviews = getReviewsForMovie(filmeBase.id) || [];
@@ -235,6 +238,12 @@ const DetalhesFilmeScreen = () => {
     if (!movieId) return;
     addReview(movieId, review);
     setReviews(prev => [review, ...prev]);
+  };
+
+  const scrollToReviews = () => {
+    if (scrollViewRef.current && reviewsSectionY > 0) {
+      scrollViewRef.current.scrollTo({ y: reviewsSectionY, animated: true });
+    }
   };
 
   const onShare = async () => {
@@ -352,6 +361,7 @@ const DetalhesFilmeScreen = () => {
   return (
     <>
      <ScrollView 
+        ref={scrollViewRef}
         style={styles.scrollViewContainer}
         contentContainerStyle={{ paddingBottom: 80 + insets.bottom }}
       >
@@ -397,9 +407,14 @@ const DetalhesFilmeScreen = () => {
               rating={movieDetails?.vote_average}
               style={generalAnimatedStyle}
             />
-            <TouchableOpacity onPress={openAddReviewModal} style={styles.actionButton} activeOpacity={0.7}>
-              <Ionicons name="star-outline" size={24} color={COLORS.accent1} />
-            </TouchableOpacity>
+
+            <AnimatedTouchableOpacity 
+              onPress={scrollToReviews} 
+              style={[styles.jumpToReviewsBtn, generalAnimatedStyle]}
+              activeOpacity={0.6}
+            >
+              <Ionicons name="chatbox-ellipses-outline" size={20} color={COLORS.textPrimary} />
+            </AnimatedTouchableOpacity>
           </View>
 
           <Animated.View style={[styles.genreContainer, generalAnimatedStyle]}>
@@ -469,14 +484,12 @@ const DetalhesFilmeScreen = () => {
                     item={item}
                     onPress={() => {
                       if (isTV) {
-                        // Navegar para DetalhesTemporada
                         navigation.navigate('DetalhesTemporada', {
                           seriesId: movieDetails.id,
                           seasonNumber: item.season_number,
                           seasonTitle: item.name,
                         });
                       } else {
-                        // Navegar para DetalhesFilme (da coleção)
                         navigation.push('DetalhesFilme', { mediaItem: item });
                       }
                     }}
@@ -490,38 +503,57 @@ const DetalhesFilmeScreen = () => {
             </>
           )}
 
-          {reviews.length > 0 && (
-            <>
-              <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Avaliações</Animated.Text>
+          {/* --- SEÇÃO DE AVALIAÇÕES --- */}
+          <View 
+            style={{ width: '100%' }}
+            onLayout={(event) => {
+              const layout = event.nativeEvent.layout;
+              setReviewsSectionY(layout.y);
+            }}
+          >
+             <Animated.Text style={[styles.sectionTitle, generalAnimatedStyle]}>Avaliações</Animated.Text>
+             
+             <Animated.View style={[styles.actionButtonContainer, generalAnimatedStyle]}>
+                <TouchableOpacity
+                  onPress={openAddReviewModal}
+                  style={styles.addReviewButtonWide}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="create-outline" size={22} color={COLORS.textPrimary} style={{ marginRight: 10 }} />
+                  <Text style={styles.addReviewButtonText}>Avaliar este título</Text>
+                </TouchableOpacity>
+              </Animated.View>
 
-              <Animated.FlatList
-                data={reviews}
-                renderItem={({ item, index }) => (
-                  <ReviewCardItem
-                    item={item}
-                    index={index}
-                    scrollX={scrollX}
-                    isExpanded={!!expandedReviews[item.id]}
-                    onOpenModal={() => openReviewModal(item)}
-                    ITEM_SIZE={ITEM_SIZE}
-                  />
-                )}
-                keyExtractor={(item, index) => (item ? item.id : index.toString())}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                onScroll={Animated.event(
-                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                  { useNativeDriver: true }
-                )}
-                scrollEventThrottle={16}
-                snapToInterval={ITEM_SIZE}
-                snapToAlignment="start"
-                decelerationRate="fast"
-                contentContainerStyle={styles.reviewCarouselContainer}
-              />
-            </>
-          )}
-
+              {reviews.length > 0 ? (
+                <Animated.FlatList
+                  data={reviews}
+                  renderItem={({ item, index }) => (
+                    <ReviewCardItem
+                      item={item}
+                      index={index}
+                      scrollX={scrollX}
+                      isExpanded={!!expandedReviews[item.id]}
+                      onOpenModal={() => openReviewModal(item)}
+                      ITEM_SIZE={ITEM_SIZE}
+                    />
+                  )}
+                  keyExtractor={(item, index) => (item ? item.id : index.toString())}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                    { useNativeDriver: true }
+                  )}
+                  scrollEventThrottle={16}
+                  snapToInterval={ITEM_SIZE}
+                  snapToAlignment="start"
+                  decelerationRate="fast"
+                  contentContainerStyle={styles.reviewCarouselContainer}
+                />
+              ) : (
+                <Text style={styles.noReviewsText}>Nenhuma avaliação ainda. Seja o primeiro!</Text>
+              )}
+          </View>
         </View>
       </ScrollView>
 
@@ -638,12 +670,47 @@ const getStyles = (COLORS) => StyleSheet.create({
     opacity: 0.7,
     marginRight: 15,
   },
+  jumpToReviewsBtn: {
+    marginLeft: 10,
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: COLORS.infoBoxBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   genreContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     marginTop: 10,
     paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  actionButtonContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  addReviewButtonWide: {
+    backgroundColor: COLORS.accent2, // --- ALTERADO PARA ACCENT2 ---
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 30, 
+    width: '65%', 
+    shadowColor: COLORS.accent2,    // --- ALTERADO PARA ACCENT2 ---
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6, 
+  },
+  addReviewButtonText: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   sectionTitle: {
     fontSize: 22,
@@ -725,7 +792,13 @@ const getStyles = (COLORS) => StyleSheet.create({
     paddingVertical: 10,
     paddingBottom: 20,
   },
-  // compact action buttons reuse `actionButton` style
+  noReviewsText: {
+    color: COLORS.textPrimary,
+    opacity: 0.6,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontStyle: 'italic',
+  }
 });
 
 export default DetalhesFilmeScreen;

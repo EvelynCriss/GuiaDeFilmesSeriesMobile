@@ -1,24 +1,31 @@
+// components/MovieRating.js
 import React from 'react';
 import { Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
+// Criamos o componente animado do LinearGradient para aceitar as props de estilo (opacity, transform)
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
 const getRatingGradientColors = (rating, COLORS) => {
+  // Nível 5: >= 9.0 (Incrível - Gradiente invertido vibrante)
   if (rating >= 9.0) {
     return [COLORS.accent3, COLORS.accent1];
   }
+  // Nível 4: >= 7.5 (Ótimo - Gradiente vibrante padrão)
   if (rating >= 7.5) {
     return [COLORS.accent1, COLORS.accent3];
   }
+  // Nível 3: >= 6.0 (Bom - Gradiente com transparência)
   if (rating >= 6.0) {
-    return [COLORS.accent2, COLORS.accent3 + '99'];
+    return [COLORS.accent2, COLORS.accent3 + '99']; // ~60% opacidade no final
   }
+  // Nível 2: >= 4.5 (Regular - Monocromático fraco)
   if (rating >= 4.5) {
-    return [COLORS.accent2, COLORS.accent2 + '80'];
+    return [COLORS.accent2, COLORS.accent2 + '80']; // 50% opacidade
   }
+  // Nível 1: < 4.5 (Ruim - Cores neutras do tema)
   return [COLORS.infoBoxBg, COLORS.reviewTextBox];
 };
 
@@ -26,7 +33,8 @@ const MovieRating = ({ rating, style }) => {
   const { colors: COLORS } = useTheme();
   const styles = getStyles(COLORS);
 
-  if (!rating || rating <= 0) {
+  // Se não houver nota, não renderiza nada
+  if (rating === null || rating === undefined || rating <= 0) {
     return null;
   }
 
@@ -56,7 +64,8 @@ const getStyles = (COLORS) => StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: 'hidden', // Importante para o gradiente respeitar a borda
+    marginVertical: 8,  // Mantendo o espaçamento que tinha na versão de estrelas
   },
   ratingText: {
     fontSize: 18,

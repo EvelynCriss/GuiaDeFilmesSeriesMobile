@@ -8,15 +8,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FavoritesProvider } from './context/FavoritesContext';
 import { ReviewsProvider } from './context/ReviewsContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import CustomHeader from './components/CustomHeader';
+import { AuthProvider, useAuth } from './context/AuthContext'; 
 
+import CustomHeader from './components/CustomHeader';
 import TabNavigator from './navigation/TabNavigator';
+import LoginScreen from './screens/LoginScreen'; 
+import RegisterScreen from './screens/RegisterScreen'; 
 
 const Stack = createStackNavigator();
 
 function AppContent() {
   const { colors: COLORS, theme } = useTheme();
-
+  
   const navigationTheme = {
     ...(theme === 'dark' ? DarkTheme : DefaultTheme),
     colors: {
@@ -33,12 +36,23 @@ function AppContent() {
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={COLORS.headerBackground} />
       
       <Stack.Navigator
-        initialRouteName="MainTabs"
+        initialRouteName="Login" 
         screenOptions={{
           header: (props) => <CustomHeader {...props} />,
           cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
         }}
       >
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen} 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="Register" 
+          component={RegisterScreen} 
+          options={{ headerShown: false }} 
+        />
+
         <Stack.Screen
           name="MainTabs"
           component={TabNavigator}
@@ -52,13 +66,15 @@ function AppContent() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <FavoritesProvider>
-          <ReviewsProvider>
-            <AppContent />
-          </ReviewsProvider>
-        </FavoritesProvider>
-      </ThemeProvider>
+      <AuthProvider> 
+        <ThemeProvider>
+          <FavoritesProvider>
+            <ReviewsProvider>
+              <AppContent />
+            </ReviewsProvider>
+          </FavoritesProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

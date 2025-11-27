@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
 const CustomHeader = ({ navigation, back, transparent = false }) => {
-  const { colors: COLORS, theme } = useTheme();
+  const { colors: COLORS, theme, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = () => {
@@ -15,34 +15,23 @@ const CustomHeader = ({ navigation, back, transparent = false }) => {
     }
   };
 
-  // --- LÓGICA DE VISIBILIDADE ---
-
-  // 1. Fundo do Header (O container principal)
-  // Mantemos transparente como você pediu.
   const containerBackgroundColor = transparent ? 'transparent' : COLORS.headerBackground;
   const borderBottomWidth = transparent ? 0 : 1;
-  
-  // 2. Fundo da Caixa de Pesquisa e Botões
-  // AQUI ESTÁ A CORREÇÃO:
-  // Se for transparente, usamos um PRETO com 75% de opacidade. 
-  // Isso garante que o texto branco seja lido perfeitamente, mesmo se o fundo do app for branco.
+
   const elementBackground = transparent 
-    ? 'rgba(30, 30, 30, 0.75)' 
+    ? COLORS.glassBackground 
     : (theme === 'light' ? '#F0F0F0' : COLORS.surface);
 
-  // 3. Cor do Texto e Ícones
-  // Se transparente (fundo escuro), texto sempre BRANCO.
   const contentColor = transparent 
-    ? '#FFFFFF' 
+    ? COLORS.glassText 
     : COLORS.textPrimary;
 
   const placeholderColor = transparent
-    ? '#CCCCCC' // Cinza claro para ler em cima do preto
-    : (theme === 'dark' ? '#AAAAAA' : '#888888');
+    ? COLORS.glassPlaceholder
+    : COLORS.placeholderText;
 
-  // Borda sutil para destacar a caixa quando o fundo for parecido
   const elementBorderColor = transparent 
-    ? 'rgba(255, 255, 255, 0.1)' 
+    ? COLORS.glassBorder 
     : 'transparent';
 
   return (
@@ -56,7 +45,6 @@ const CustomHeader = ({ navigation, back, transparent = false }) => {
         borderBottomWidth: borderBottomWidth,
       }]}>
 
-        {/* Lado Esquerdo: Botão Voltar OU Logo */}
         <View style={styles.leftContainer}>
           {back ? (
             <TouchableOpacity 
@@ -74,23 +62,29 @@ const CustomHeader = ({ navigation, back, transparent = false }) => {
               />
             </TouchableOpacity>
           ) : (
-            <View style={[styles.iconButton, { 
-              backgroundColor: elementBackground,
-              borderColor: elementBorderColor,
-              borderWidth: transparent ? 1 : 0
-            }]}>
-              <Ionicons name="film" size={24} color={COLORS.accent1} />
-            </View>
+            <TouchableOpacity 
+              onPress={toggleTheme}
+              style={[styles.iconButton, { 
+                backgroundColor: elementBackground,
+                borderColor: elementBorderColor,
+                borderWidth: transparent ? 1 : 0
+              }]}
+            >
+              <Ionicons 
+                name={theme === 'dark' ? 'moon' : 'sunny'} 
+                size={22} 
+                color={theme === 'dark' ? COLORS.accent1 : COLORS.accent3} 
+              />
+            </TouchableOpacity>
           )}
         </View>
 
-        {/* Barra de Pesquisa */}
         <View style={[styles.searchContainer, { 
           backgroundColor: elementBackground,
           borderColor: elementBorderColor,
           borderWidth: transparent ? 1 : 0
         }]}>
-          <Ionicons name="search" size={20} color={contentColor} style={{ opacity: 0.7 }} />
+          <Ionicons name="search" size={20} color={placeholderColor} style={{ opacity: 0.7 }} />
           
           <TextInput
             style={[styles.searchInput, { color: contentColor }]}
@@ -140,7 +134,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20, // Mais arredondado
+    borderRadius: 20,
     paddingHorizontal: 10,
     height: 40,
   },
@@ -148,7 +142,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 16,
-    height: '100%', // Garante que o input ocupe a altura toda para facilitar o toque
+    height: '100%', 
   },
   rightContainer: {
     width: 20,
